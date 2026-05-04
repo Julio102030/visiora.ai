@@ -1,22 +1,2278 @@
-{
-  "name": "Visiora AI",
-  "short_name": "Visiora",
-  "description": "Asistente inteligente de visión, lectura y navegación.",
-  "start_url": "./index.html",
-  "display": "fullscreen",
-  "background_color": "#000000",
-  "theme_color": "#000000",
-  "orientation": "portrait",
-  "icons": [
-    {
-      "src": "LOGO VISIORA AI.jpg",
-      "sizes": "192x192",
-      "type": "image/jpeg"
-    },
-    {
-      "src": "LOGO VISIORA AI.jpg",
-      "sizes": "512x512",
-      "type": "image/jpeg"
-    }
-  ]
-}
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Visiora AI - Wearable Edition (Estable v14.0) - Capa 2 Completada</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/lucide/0.263.0/lucide.min.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@400;700;900&display=swap" rel="stylesheet">
+    <style>
+        /* ==========================================
+           ESTILOS GLOBALES DEL BACKEND
+           ========================================== */
+        #backend-layer { position: fixed; inset: 0; background: #000; z-index: 9999; display: flex; flex-direction: column; align-items: center; justify-content: center; transition: opacity 0.5s ease; }
+        .server-pulse { width: 80px; height: 80px; border-radius: 50%; border: 4px solid #3b82f6; border-top-color: transparent; animation: spin 1s linear infinite; margin-bottom: 2rem; box-shadow: 0 0 30px rgba(59, 130, 246, 0.4); }
+        .server-pulse.error-pulse { border-color: #ef4444; border-top-color: transparent; box-shadow: 0 0 30px rgba(239, 68, 68, 0.4); }
+        .log-text { font-family: monospace; color: #3b82f6; font-size: 0.8rem; letter-spacing: 0.1em; text-transform: uppercase; max-width: 300px; text-align: center; margin-top: 10px;}
+        .log-error { color: #ef4444; }
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+
+        /* ==========================================
+           CONTENEDOR DE ESTILOS GLOBALES
+           ========================================== */
+        body { background-color: #000; color: #fff; font-family: 'Segoe UI', system-ui, sans-serif; margin: 0; overflow: hidden; height: 100vh; display: flex; align-items: center; justify-content: center; transition: background-color 0.5s; }
+        body[dir="rtl"] { font-family: 'Tajawal', 'Segoe UI', system-ui, sans-serif; }
+        #video-container { position: fixed; top: 0; left: 0; width: 100%; height: 100%; z-index: 1; background: #000; }
+        #video-preview { width: 100%; height: 100%; object-fit: cover; filter: brightness(0.25) contrast(1.1); }
+        .app-container { position: relative; z-index: 10; width: 100%; max-width: 450px; height: 100%; padding: 1.25rem; display: flex; flex-direction: column; justify-content: center; }
+
+        .card-btn { background: rgba(20, 20, 20, 0.85); backdrop-filter: blur(12px); border-radius: 1.2rem; padding: 0.8rem; display: flex; flex-direction: column; align-items: center; justify-content: center; height: 115px; transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1); border: 1px solid rgba(255,255,255,0.05); overflow: hidden; cursor: pointer; }
+        .card-btn:active { transform: scale(0.94); filter: brightness(1.2); }
+        
+        .btn-icon { font-size: 2.8rem; filter: drop-shadow(0 4px 6px rgba(0,0,0,0.6)); margin-bottom: 0.2rem; line-height: 1; }
+        .label-text { font-weight: 900; font-size: 0.75rem; text-transform: uppercase; margin-top: 0.5rem; letter-spacing: 0.05em; text-shadow: 0 2px 4px rgba(0,0,0,0.8); text-align: center; color: #f4f4f5; }
+        body[dir="rtl"] .label-text { letter-spacing: 0; font-size: 0.85rem; }
+
+        .btn-explorar { border-color: rgba(249, 115, 22, 0.5); box-shadow: 0 0 20px rgba(249,115,22,0.15); }
+        .btn-dinero { border-color: rgba(234, 179, 8, 0.5); box-shadow: 0 0 20px rgba(234,179,8,0.15); }
+        .btn-leer { border-color: rgba(59, 130, 246, 0.5); box-shadow: 0 0 20px rgba(59,130,246,0.15); }
+        .btn-gps { border-color: rgba(34, 197, 94, 0.5); box-shadow: 0 0 20px rgba(34,197,94,0.15); }
+        .btn-radio { border-color: rgba(14, 165, 233, 0.5); box-shadow: 0 0 20px rgba(14,165,233,0.15); }
+        .btn-ocio { border-color: rgba(168, 85, 247, 0.5); box-shadow: 0 0 20px rgba(168,85,247,0.15); }
+        .btn-llamar { border-color: rgba(236, 72, 153, 0.5); box-shadow: 0 0 20px rgba(236,72,153,0.15); }
+        .btn-emergencia { border-color: rgba(239, 68, 68, 0.7); box-shadow: 0 0 25px rgba(239,68,68,0.25); background: rgba(239, 68, 68, 0.1); }
+        
+        .btn-ocio-item { border-color: rgba(236, 72, 153, 0.4); box-shadow: 0 0 15px rgba(236,72,153,0.1); background: rgba(30, 15, 25, 0.85); }
+        .btn-gps-item { border-color: rgba(34, 197, 94, 0.4); box-shadow: 0 0 15px rgba(34,197,94,0.1); background: rgba(15, 30, 20, 0.85); }
+        .btn-radio-item { border-color: rgba(14, 165, 233, 0.4); box-shadow: 0 0 15px rgba(14,165,233,0.1); background: rgba(15, 25, 35, 0.85); }
+
+        .mic-recording { background: #ef4444 !important; box-shadow: 0 0 30px rgba(239, 68, 68, 0.7); border-color: #fff !important; animation: pulse-mic 1.2s infinite ease-in-out; }
+        .sos-active { animation: sos-flash 0.8s infinite !important; }
+        .danger-active { animation: danger-flash 0.5s infinite !important; }
+        .call-active { animation: call-flash 1.5s infinite !important; }
+        
+        @keyframes sos-flash { 0%, 100% { background-color: #450a0a; } 50% { background-color: #7f1d1d; } }
+        @keyframes danger-flash { 0%, 100% { background-color: #000; } 50% { background-color: #dc2626; } }
+        @keyframes call-flash { 0%, 100% { background-color: #000; } 50% { background-color: #064e3b; } }
+        @keyframes pulse-mic { 0%, 100% { transform: scale(1); } 50% { transform: scale(1.1); } }
+        
+        #scanner-line { position: absolute; width: 100%; height: 4px; background: linear-gradient(to right, transparent, #fbbf24, transparent); top: 0; display: none; z-index: 5; box-shadow: 0 0 15px #fbbf24; }
+        .active-scan #scanner-line { display: block; animation: scan-anim 2.5s infinite linear; }
+        @keyframes scan-anim { 0% { top: 0%; } 100% { top: 100%; } }
+
+        .app-busy { pointer-events: none; opacity: 0.95; }
+
+        .hidden { display: none !important; }
+        
+        .version-badge { position: absolute; top: 1rem; inset-inline-end: 1rem; background: #3b82f6; color: white; font-size: 0.6rem; font-weight: bold; padding: 4px 8px; border-radius: 10px; border: 1px solid rgba(255,255,255,0.2); }
+        .no-scrollbar::-webkit-scrollbar { display: none; } 
+        .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+
+        @keyframes splashLogoAnim { 0% { opacity: 0; transform: scale(0.85); } 100% { opacity: 1; transform: scale(1); } }
+        @keyframes splashPromptAnim { 0% { opacity: 0; transform: translateY(10px); } 100% { opacity: 1; transform: translateY(0); } }
+        .anim-logo-start { animation: splashLogoAnim 1.5s cubic-bezier(0.2, 0.8, 0.2, 1) forwards; }
+        .anim-prompt-start { opacity: 0; animation: splashPromptAnim 1s ease-out 3s forwards; }
+    </style>
+</head>
+<body dir="ltr">
+
+    <!-- CAPA DE BACKEND -->
+    <div id="backend-layer">
+        <div id="loading-spinner" class="server-pulse"></div>
+        <p id="backend-title" class="text-xl font-black text-white tracking-widest italic mb-2">VISIORA CLOUD</p>
+        <p id="backend-status-log" class="log-text">Conectando con servidores...</p>
+    </div>
+
+    <div id="sleep-overlay" class="hidden fixed inset-0 bg-black z-[100] flex flex-col items-center justify-center"></div>
+
+    <div id="video-container"><video id="video-preview" autoplay playsinline muted></video><div id="scanner-line"></div></div>
+
+    <div id="screen-splash" role="button" tabindex="0" class="fixed inset-0 bg-black z-50 flex flex-col items-center justify-center p-6 text-center cursor-pointer" onclick="Core.init()">
+        <span class="version-badge" aria-hidden="true">VISIORA AI&reg; v14</span>
+        <img id="main-logo" src="https://i.ibb.co/YFGy8NCy/LOGO-VISIORA-AI.png" alt="Logotipo" class="anim-logo-start w-full max-w-[600px] object-contain mb-12 rounded-3xl" onerror="this.style.display='none'; document.getElementById('fallback-text').classList.remove('hidden');">
+        <h1 id="fallback-text" aria-hidden="true" class="hidden text-5xl font-black text-blue-500 mb-12 tracking-widest anim-logo-start italic">VISIORA AI</h1>
+        <div id="start-prompt" class="anim-prompt-start" aria-hidden="true">
+            <p data-i18n="ui_tap_to_start" class="text-blue-400 font-bold uppercase text-base sm:text-lg tracking-[0.3em] animate-pulse px-10 py-4 rounded-full border border-blue-500/30 bg-blue-900/20 shadow-[0_0_20px_rgba(59,130,246,0.3)]">
+                Toca la pantalla para iniciar
+            </p>
+        </div>
+    </div>
+
+    <div class="app-container">
+        <!-- CONTROLES SUPERIORES -->
+        <div id="top-bar" class="hidden absolute top-6 inset-x-0 w-full px-6 flex justify-between items-center z-20">
+            <div class="flex gap-2">
+                <button onclick="AppController.toggleVoice()" class="flex items-center gap-2 bg-zinc-800/95 border-2 border-zinc-500/70 rounded-full px-4 py-2 shadow-[0_0_15px_rgba(0,0,0,0.5)] transition active:scale-95"><span class="text-lg">🗣️🔒</span></button>
+                <button onclick="UI.navigateTo('menu-config')" class="flex items-center gap-2 bg-zinc-800/95 border-2 border-zinc-500/70 rounded-full px-4 py-2 shadow-[0_0_15px_rgba(0,0,0,0.5)] transition active:scale-95"><span class="text-lg">⚙️</span></button>
+            </div>
+            <button onclick="AppController.exitApp()" class="flex items-center gap-2 bg-red-900/90 border-2 border-red-500/80 rounded-full px-4 py-2 shadow-[0_0_15px_rgba(239,68,68,0.4)] transition active:scale-95">
+                <span data-i18n="ui_exit" class="text-[0.65rem] font-black tracking-widest text-red-100 uppercase mt-0.5">Salir</span><span class="text-lg">❌</span>
+            </button>
+        </div>
+
+        <!-- CABECERA MICRÓFONO -->
+        <header id="app-header" class="hidden flex flex-col items-center mb-4 mt-16">
+            <button id="mic-btn" onclick="AppController.handleMicClick()" class="w-20 h-20 rounded-full bg-zinc-800/90 border-2 border-white/10 flex items-center justify-center mb-2 transition-all shadow-2xl backdrop-blur-md">
+                <i data-lucide="mic" class="w-8 h-8 text-white pointer-events-none"></i>
+            </button>
+            <div class="h-6 flex items-center">
+                <p id="status-display" data-i18n="ui_status_ready" class="text-[0.65rem] font-black text-white/50 uppercase tracking-[0.2em] italic text-center">LISTO</p>
+            </div>
+        </header>
+
+        <!-- MENÚ PRINCIPAL -->
+        <main id="menu-principal" class="hidden grid grid-cols-2 gap-3 px-2">
+            <button onclick="Core.executeCommand('explorar')" class="card-btn btn-explorar"><span class="btn-icon">👁️</span><span data-i18n="ui_btn_explore" class="label-text">Explorar</span></button>
+            <button onclick="Core.executeCommand('dinero')" class="card-btn btn-dinero"><span class="btn-icon">💰</span><span data-i18n="ui_btn_money" class="label-text">Dinero</span></button>
+            <button onclick="Core.executeCommand('leer')" class="card-btn btn-leer"><span class="btn-icon">📖</span><span data-i18n="ui_btn_read" class="label-text">Leer</span></button>
+            <button onclick="Core.executeCommand('enter_gps_menu')" class="card-btn btn-gps"><span class="btn-icon">📍</span><span data-i18n="ui_btn_gps" class="label-text">GPS Accesible</span></button>
+            <button onclick="UI.navigateTo('menu-radio')" class="card-btn btn-radio"><span class="btn-icon">📻</span><span data-i18n="ui_btn_radio" class="label-text">Radio FM</span></button>
+            <button onclick="UI.navigateTo('menu-ocio')" class="card-btn btn-ocio"><span class="btn-icon">🎭</span><span data-i18n="ui_btn_leisure" class="label-text">Ocio</span></button>
+            <button onclick="UI.navigateTo('menu-llamar')" class="card-btn btn-llamar col-span-2 h-20 flex-row gap-4"><span class="btn-icon text-3xl mb-0">📞</span><span data-i18n="ui_btn_call" class="label-text text-sm mt-0">Llamar Contacto</span></button>
+            <button onclick="Core.triggerSOS()" class="card-btn btn-emergencia col-span-2 h-20 flex-row gap-4"><span class="btn-icon text-3xl mb-0">🚨</span><span data-i18n="ui_btn_emergency" class="label-text text-sm mt-0 text-red-100">Emergencia</span></button>
+        </main>
+
+        <!-- MENÚ DE LLAMADAS ESPECÍFICAS -->
+        <main id="menu-llamar" class="hidden flex flex-col gap-3 px-1 w-full max-h-[80vh] overflow-y-auto no-scrollbar pb-6">
+            <div class="flex items-center gap-3 mb-1"><div class="w-1.5 h-6 bg-pink-500 rounded-full"></div><h2 data-i18n="ui_title_call" class="text-2xl font-black text-pink-500 italic tracking-tighter uppercase">LLAMAR A...</h2></div>
+            <div id="llamar-contact-list" class="grid grid-cols-1 gap-2"></div>
+            <button onclick="UI.navigateTo('menu-principal')" class="w-full mt-4 py-3 rounded-2xl bg-[#111] border border-white/10 flex items-center justify-center font-black uppercase text-[0.7rem] tracking-widest active:bg-white/20 transition text-gray-300"><span data-i18n="ui_btn_back_home">VOLVER AL INICIO</span></button>
+        </main>
+
+        <!-- MENÚ DE CONFIGURACIÓN -->
+        <main id="menu-config" class="hidden flex flex-col gap-3 px-1 w-full max-h-[85vh] overflow-y-auto no-scrollbar pb-24">
+            <div class="flex items-center gap-3 mb-2 sticky top-0 bg-black/90 py-2 z-10 backdrop-blur-md"><div class="w-1.5 h-6 bg-yellow-500 rounded-full"></div><h2 data-i18n="ui_title_settings" class="text-2xl font-black text-yellow-500 italic tracking-tighter uppercase">CONFIGURACIÓN</h2></div>
+            
+            <div class="bg-indigo-900/20 p-4 rounded-2xl border border-indigo-500/30">
+                <h3 data-i18n="ui_cfg_glasses_title" class="text-sm font-bold text-indigo-400 uppercase mb-2 flex items-center gap-2">👓 Hardware de Visión y Audio</h3>
+                
+                <label class="text-xs text-indigo-300 font-bold mb-1 block">Cámara (Ojos)</label>
+                <select id="cfg-glasses-type" class="w-full mb-3 bg-black border border-indigo-500/30 rounded-xl px-3 py-2 text-white focus:outline-none focus:border-indigo-400" onchange="SettingsUI.toggleGlassesFields()">
+                    <option value="phone" data-i18n="ui_glasses_phone">Cámara del Teléfono (Recomendado)</option>
+                    <option value="usb" data-i18n="ui_glasses_usb">Gafas USB / Cámara Externa</option>
+                    <option value="wifi" data-i18n="ui_glasses_wifi">Gafas Wi-Fi Genéricas</option>
+                </select>
+                <div id="cfg-glasses-usb-group" class="hidden"><div class="flex gap-2 mb-3"><select id="cfg-glasses-usb-list" class="flex-1 bg-black border border-indigo-500/30 rounded-xl px-3 py-2 text-white text-sm focus:outline-none focus:border-indigo-400"></select><button onclick="SettingsUI.refreshDevices()" class="bg-indigo-600/50 px-3 rounded-xl border border-indigo-500/50" data-i18n="ui_btn_refresh_cams">🔄</button></div></div>
+                <div id="cfg-glasses-wifi-group" class="hidden"><input type="text" id="cfg-glasses-wifi-url" placeholder="http://192.168.4.1/stream" class="w-full mb-3 bg-black border border-indigo-500/30 rounded-xl px-3 py-2 text-white text-sm placeholder-white/30 focus:outline-none focus:border-indigo-400"></div>
+
+                <label class="text-xs text-indigo-300 font-bold mb-1 block">Micrófono (Gafas Bluetooth)</label>
+                <div class="flex gap-2">
+                    <select id="cfg-mic-list" class="flex-1 bg-black border border-indigo-500/30 rounded-xl px-3 py-2 text-white text-sm focus:outline-none focus:border-indigo-400">
+                        <option value="auto">Automático (Sistema)</option>
+                    </select>
+                    <button onclick="SettingsUI.refreshDevices()" class="bg-indigo-600/50 px-3 rounded-xl border border-indigo-500/50">🔄</button>
+                </div>
+            </div>
+
+            <div class="bg-blue-900/20 p-4 rounded-2xl border border-blue-500/30">
+                <h3 class="text-sm font-bold text-blue-400 uppercase mb-2 flex items-center gap-2">🌐 Idioma / Language</h3>
+                <select id="cfg-language" class="w-full bg-black border border-blue-500/30 rounded-xl px-3 py-2 text-white focus:outline-none focus:border-blue-400">
+                    <option value="es">Español</option><option value="en">English</option><option value="pt">Português</option><option value="ar">العربية</option>
+                </select>
+            </div>
+
+            <div class="bg-red-900/20 p-4 rounded-2xl border border-red-500/30">
+                <h3 data-i18n="ui_cfg_emergency_title" class="text-sm font-bold text-red-400 uppercase mb-2 flex items-center gap-2">🚨 Contacto de Emergencia</h3>
+                <input type="text" id="cfg-em-name" data-i18n-placeholder="ui_ph_name" class="w-full mb-2 bg-black border border-red-500/30 rounded-xl px-3 py-2 text-white placeholder-white/30 focus:outline-none focus:border-red-400">
+                <input type="tel" id="cfg-em-tel" data-i18n-placeholder="ui_ph_phone" class="w-full bg-black border border-red-500/30 rounded-xl px-3 py-2 text-white placeholder-white/30 focus:outline-none focus:border-red-400">
+            </div>
+
+            <div class="bg-zinc-900/50 p-4 rounded-2xl border border-white/10">
+                <h3 data-i18n="ui_cfg_contacts_title" class="text-sm font-bold text-pink-400 uppercase mb-2">📞 Contactos Frecuentes</h3>
+                <div class="mb-4"><input type="text" id="cfg-c1-name" data-i18n-placeholder="ui_ph_name" class="w-full mb-1 bg-black border border-white/20 rounded-xl px-3 py-2 text-white text-sm focus:outline-none focus:border-pink-400"><input type="tel" id="cfg-c1-tel" data-i18n-placeholder="ui_ph_phone_short" class="w-full bg-black border border-white/20 rounded-xl px-3 py-2 text-white text-sm focus:outline-none focus:border-pink-400"></div>
+                <div class="mb-4"><input type="text" id="cfg-c2-name" data-i18n-placeholder="ui_ph_name" class="w-full mb-1 bg-black border border-white/20 rounded-xl px-3 py-2 text-white text-sm focus:outline-none focus:border-pink-400"><input type="tel" id="cfg-c2-tel" data-i18n-placeholder="ui_ph_phone_short" class="w-full bg-black border border-white/20 rounded-xl px-3 py-2 text-white text-sm focus:outline-none focus:border-pink-400"></div>
+                <div><input type="text" id="cfg-c3-name" data-i18n-placeholder="ui_ph_name" class="w-full mb-1 bg-black border border-white/20 rounded-xl px-3 py-2 text-white text-sm focus:outline-none focus:border-pink-400"><input type="tel" id="cfg-c3-tel" data-i18n-placeholder="ui_ph_phone_short" class="w-full bg-black border border-white/20 rounded-xl px-3 py-2 text-white text-sm focus:outline-none focus:border-pink-400"></div>
+            </div>
+
+            <button onclick="StorageManager.saveConfig()" class="w-full py-4 rounded-2xl bg-yellow-600/30 border border-yellow-500/50 font-black uppercase tracking-widest text-yellow-300 mt-2 shadow-[0_0_15px_rgba(234,179,8,0.2)]"><span data-i18n="ui_btn_save">💾 GUARDAR CAMBIOS</span></button>
+            <button onclick="UI.navigateTo('menu-principal')" class="w-full py-3 rounded-2xl bg-[#111] border border-white/10 font-black uppercase text-[0.7rem] tracking-widest text-gray-300"><span data-i18n="ui_btn_back_home">VOLVER AL INICIO</span></button>
+        </main>
+
+        <!-- CAPA GPS AVANZADA -->
+        <main id="menu-gps" class="hidden flex flex-col gap-3 px-1">
+            <div class="flex items-center gap-3 mb-1"><div class="w-1.5 h-6 bg-green-500 rounded-full"></div><h2 data-i18n="ui_title_nav" class="text-2xl font-black text-green-500 italic tracking-tighter uppercase">NAVEGACIÓN ACCESIBLE</h2></div>
+            <div class="grid grid-cols-2 gap-2">
+                <button onclick="Core.executeCommand('gps_live_assist')" class="card-btn btn-gps-item h-20 col-span-2 border-emerald-500/50 bg-emerald-900/30 shadow-[0_0_20px_rgba(16,185,129,0.3)]"><span class="btn-icon text-[1.8rem] animate-pulse">📹</span><span data-i18n="ui_btn_live_assist" class="label-text text-emerald-300">Asistente en Vivo</span></button>
+                <button onclick="Core.executeCommand('gps_explore_zone')" class="card-btn btn-gps-item h-20 col-span-2 border-yellow-500/50 bg-yellow-900/20"><span class="btn-icon text-[1.8rem]">🗺️</span><span data-i18n="ui_btn_explore_zone" class="label-text text-yellow-300">Explorar Entorno</span></button>
+                <button onclick="Core.executeCommand('gps_location')" class="card-btn btn-gps-item h-20 col-span-2 border-green-400 shadow-[0_0_20px_rgba(74,222,128,0.2)]"><span class="btn-icon text-[1.8rem]">📍</span><span data-i18n="ui_btn_where" class="label-text text-green-300">¿Dónde estoy Exactamente?</span></button>
+                <button onclick="Core.executeCommand('gps_guide', 'supermarket')" class="card-btn btn-gps-item h-24 px-1"><span class="btn-icon text-[2.2rem]">🛒</span><span data-i18n="ui_btn_supermarket" class="label-text">Supermercado/Tienda</span></button>
+                <button onclick="Core.executeCommand('gps_guide', 'pharmacy')" class="card-btn btn-gps-item h-24 px-1"><span class="btn-icon text-[2.2rem]">💊</span><span data-i18n="ui_btn_pharmacy" class="label-text">Farmacia</span></button>
+                <button onclick="Core.executeCommand('gps_guide', 'park')" class="card-btn btn-gps-item h-24 px-1"><span class="btn-icon text-[2.2rem]">🌳</span><span data-i18n="ui_btn_park" class="label-text">Parque</span></button>
+                <button onclick="Core.executeCommand('gps_guide', 'worship')" class="card-btn btn-gps-item h-24 px-1"><span class="btn-icon text-[2.2rem]">⛪</span><span data-i18n="ui_btn_church" class="label-text">Iglesia/Templo</span></button>
+            </div>
+            <button onclick="LocationEngine.cancelRoute(true)" class="w-full mt-2 py-3 rounded-2xl bg-[#111] border border-white/10 flex items-center justify-center font-black uppercase text-[0.7rem] tracking-widest active:bg-white/20 transition text-gray-300"><span data-i18n="ui_btn_back_home">VOLVER AL INICIO</span></button>
+        </main>
+        
+        <!-- PANTALLA EN RUTA -->
+        <main id="menu-nav-activa" class="hidden flex flex-col gap-3 px-1">
+            <div class="flex items-center gap-3 mb-1"><div class="w-1.5 h-6 bg-green-400 rounded-full animate-pulse"></div><h2 data-i18n="ui_title_en_route" class="text-2xl font-black text-green-400 italic tracking-tighter uppercase">EN RUTA</h2></div>
+            <div class="bg-green-900/20 border-2 border-green-500/30 rounded-2xl p-4 mb-2 text-center">
+                <h3 id="nav-dest-title" class="text-sm font-bold text-green-300 uppercase tracking-widest mb-2">Destino</h3>
+                <p id="nav-step-text" data-i18n="ui_nav_calc" class="text-xl font-black text-white leading-tight">Calculando ruta precisa...</p>
+            </div>
+            <div class="grid grid-cols-2 gap-2">
+                <button onclick="Core.executeCommand('gps_last_meter')" class="card-btn btn-gps-item h-20 col-span-2 border-blue-500/50 bg-blue-900/20"><span class="btn-icon text-[1.8rem] animate-pulse">👁️</span><span data-i18n="ui_btn_last_meter" class="label-text text-blue-300">Último Metro (Cámara)</span></button>
+                <button onclick="LocationEngine.readStep(-1)" class="card-btn btn-gps-item h-16 px-1"><span class="btn-icon text-[1.5rem]">⏪</span><span data-i18n="ui_btn_prev" class="label-text mt-0">Anterior</span></button>
+                <button onclick="LocationEngine.readStep(1)" class="card-btn btn-gps-item h-16 px-1"><span class="btn-icon text-[1.5rem]">⏩</span><span data-i18n="ui_btn_next" class="label-text mt-0">Siguiente</span></button>
+                <button onclick="LocationEngine.readStep(0)" class="card-btn btn-gps-item h-16 col-span-2"><span class="btn-icon text-[1.5rem]">🔄</span><span data-i18n="ui_btn_repeat" class="label-text mt-0">Repetir</span></button>
+            </div>
+            <button onclick="LocationEngine.cancelRoute()" class="w-full mt-2 py-4 rounded-2xl bg-red-900/30 border border-red-500/50 flex items-center justify-center font-black uppercase text-[0.8rem] tracking-widest transition text-red-300"><span data-i18n="ui_btn_cancel_route">❌ CANCELAR RUTA</span></button>
+        </main>
+
+        <!-- MENÚ RADIO -->
+        <main id="menu-radio" class="hidden flex flex-col gap-3 px-1">
+            <div class="flex items-center gap-3 mb-1"><div class="w-1.5 h-6 bg-sky-500 rounded-full"></div><h2 data-i18n="ui_title_radio" class="text-2xl font-black text-sky-500 italic tracking-tighter uppercase">RADIO STREAM</h2></div>
+            <div class="grid grid-cols-2 gap-2">
+                <button onclick="RadioEngine.playGlobal('news')" class="card-btn btn-radio-item h-24 px-1"><span class="btn-icon text-[2.2rem]">📰</span><span data-i18n="ui_btn_news" class="label-text">Noticias</span></button>
+                <button onclick="RadioEngine.playGlobal('pop')" class="card-btn btn-radio-item h-24 px-1"><span class="btn-icon text-[2.2rem]">🎵</span><span data-i18n="ui_btn_pop" class="label-text">Música Pop</span></button>
+                <button onclick="RadioEngine.playGlobal('relax')" class="card-btn btn-radio-item h-24 px-1"><span class="btn-icon text-[2.2rem]">🎻</span><span data-i18n="ui_btn_relax" class="label-text">Relajante</span></button>
+                <button onclick="RadioEngine.playGlobal('upbeat')" class="card-btn btn-radio-item h-24 px-1"><span class="btn-icon text-[2.2rem]">🕺</span><span data-i18n="ui_btn_upbeat" class="label-text">Animada</span></button>
+                <button onclick="RadioEngine.stop()" class="card-btn h-20 col-span-2 border-red-500/50 bg-red-900/20"><span class="btn-icon text-[2rem]">🔇</span><span data-i18n="ui_btn_stop_radio" class="label-text text-red-300">Apagar Radio</span></button>
+            </div>
+            <button onclick="UI.navigateTo('menu-principal')" class="w-full mt-2 py-3 rounded-2xl bg-[#111] border border-white/10 flex items-center justify-center font-black uppercase text-[0.7rem] text-gray-300"><span data-i18n="ui_btn_back_home">VOLVER</span></button>
+        </main>
+
+        <!-- MENÚ OCIO -->
+        <main id="menu-ocio" class="hidden flex flex-col gap-3 px-1">
+            <div class="flex items-center gap-3 mb-1"><div class="w-1.5 h-6 bg-pink-500 rounded-full"></div><h2 data-i18n="ui_title_leisure" class="text-2xl font-black text-pink-500 italic tracking-tighter uppercase">ZONA OCIO</h2></div>
+            <div class="grid grid-cols-3 gap-2">
+                <button onclick="ChatEngine.triggerTask('news')" class="card-btn btn-ocio-item h-24 px-1"><span class="btn-icon text-[2.2rem]">📰</span><span data-i18n="ui_btn_news" class="label-text">Noticias</span></button>
+                <button onclick="ChatEngine.startReligionMode()" class="card-btn btn-ocio-item h-24 px-1 border-pink-400"><span id="icon-religion" class="btn-icon text-[2.2rem] animate-pulse">🕊️</span><span id="btn-religion-text" data-i18n="ui_btn_religion" class="label-text">Biblia</span></button>
+                <button onclick="ChatEngine.triggerTask('story')" class="card-btn btn-ocio-item h-24 px-1"><span class="btn-icon text-[2.2rem]">🧚</span><span data-i18n="ui_btn_stories" class="label-text">Cuentos</span></button>
+                <button onclick="ChatEngine.triggerTask('joke')" class="card-btn btn-ocio-item h-24 px-1"><span class="btn-icon text-[2.2rem]">😂</span><span data-i18n="ui_btn_jokes" class="label-text">Chistes</span></button>
+                <button onclick="ChatEngine.startMemoryGame()" class="card-btn btn-ocio-item h-24 px-1"><span class="btn-icon text-[2.2rem]">🧠</span><span data-i18n="ui_btn_memory" class="label-text">Memoria</span></button>
+                <button onclick="ChatEngine.triggerTask('trivia')" class="card-btn btn-ocio-item h-24 px-1"><span class="btn-icon text-[2.2rem]">💡</span><span data-i18n="ui_btn_trivia" class="label-text">Trivia</span></button>
+                <button onclick="ChatEngine.startLanguageGame()" class="card-btn btn-ocio-item h-20 col-span-1 border-blue-400"><span class="btn-icon text-2xl">🌍</span><span data-i18n="ui_btn_languages" class="label-text mt-1 text-[0.65rem]">Idiomas</span></button>
+                <button onclick="ChatEngine.startConversation()" class="card-btn btn-ocio-item h-20 col-span-2"><span class="btn-icon text-2xl">🎙️</span><span data-i18n="ui_btn_talk_freely" class="label-text mt-1 text-[0.65rem]">Hablar Libremente</span></button>
+            </div>
+            <div class="w-full flex gap-2 mt-1">
+                <input type="text" id="chat-text-input" data-i18n-placeholder="ui_ph_chat" class="flex-1 bg-black border-2 border-pink-500/70 rounded-2xl px-4 py-3 text-white text-base font-bold placeholder-white/50" onkeypress="if(event.key === 'Enter') ChatEngine.sendTextMsg()">
+                <button onclick="ChatEngine.sendTextMsg()" class="bg-pink-600 w-14 rounded-2xl flex items-center justify-center border-2 border-pink-400"><i data-lucide="send" class="w-6 h-6 text-white"></i></button>
+            </div>
+            <button onclick="UI.navigateTo('menu-principal')" class="w-full mt-2 py-3 rounded-2xl bg-[#111] border border-white/10 flex items-center justify-center font-black uppercase text-[0.7rem] text-gray-300"><span data-i18n="ui_btn_back_home">VOLVER</span></button>
+        </main>
+
+    </div>
+
+    <!-- SCRIPT DEL SISTEMA CORE MEJORADO -->
+    <script>
+        // ==========================================
+        // CONFIGURACIÓN GLOBAL Y UTILIDADES
+        // ==========================================
+        
+        // 🔴 API KEY DE GOOGLE INYECTADA 🔴
+        const apiKey = ""; 
+        
+        const Config = {
+            modelTTS: "gemini-2.5-flash-preview-tts", 
+            modelText: "gemini-2.5-flash-preview-09-2025", 
+            modelVision: "gemini-2.5-flash-preview-09-2025",
+            defaultVoice: "Kore", altVoice: "Fenrir"
+        };
+
+        const fetchWithBackoff = async (url, options, maxRetries = 3) => {
+            const delays = [1000, 2000, 4000];
+            for (let i = 0; i < maxRetries; i++) {
+                try {
+                    const response = await fetch(url, options);
+                    if (!response.ok && response.status !== 400) {
+                        if (i === maxRetries - 1) throw new Error(`HTTP Error: ${response.status}`);
+                        await new Promise(r => setTimeout(r, delays[i])); continue;
+                    }
+                    return response;
+                } catch (error) {
+                    if (i === maxRetries - 1) throw error; 
+                    await new Promise(r => setTimeout(r, delays[i]));
+                }
+            }
+        };
+
+        const EventBus = {
+            events: {},
+            on(event, listener) { if (!this.events[event]) this.events[event] = []; this.events[event].push(listener); },
+            emit(event, data) { if (this.events[event]) this.events[event].forEach(l => l(data)); }
+        };
+
+        const GeoUtils = {
+            getDistanceInMeters(lat1, lon1, lat2, lon2) {
+                const R = 6371e3; const φ1 = lat1 * Math.PI/180; const φ2 = lat2 * Math.PI/180;
+                const Δφ = (lat2-lat1) * Math.PI/180; const Δλ = (lon2-lon1) * Math.PI/180;
+                const a = Math.sin(Δφ/2) * Math.sin(Δφ/2) + Math.cos(φ1) * Math.cos(φ2) * Math.sin(Δλ/2) * Math.sin(Δλ/2);
+                const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+                return R * c;
+            },
+            getBearing(lat1, lon1, lat2, lon2) {
+                const toRad = Math.PI / 180; const toDeg = 180 / Math.PI;
+                const f1 = lat1 * toRad; const f2 = lat2 * toRad; const dl = (lon2 - lon1) * toRad;
+                const y = Math.sin(dl) * Math.cos(f2);
+                const x = Math.cos(f1) * Math.sin(f2) - Math.sin(f1) * Math.cos(f2) * Math.cos(dl);
+                return (Math.atan2(y, x) * toDeg + 360) % 360;
+            },
+            getClockDirection(heading, bearing) {
+                if (heading === null || isNaN(heading)) return "";
+                let diff = (bearing - heading + 360) % 360;
+                let hour = Math.round(diff / 30);
+                if (hour === 0) hour = 12;
+                return `hacia tus ${hour} en punto`;
+            }
+        };
+
+        // ==========================================
+        // BLINDAJE DE DATOS (MOTOR DE FECHA/HORA)
+        // ==========================================
+        const DateTimeUtils = {
+            getLiveStamp() {
+                const ahora = new Date();
+                const opciones = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric', hour: '2-digit', minute: '2-digit', hour12: true };
+                return ahora.toLocaleDateString(I18n.current === 'es' ? 'es-ES' : (I18n.current === 'ar' ? 'ar-SA' : (I18n.current === 'pt' ? 'pt-BR' : 'en-US')), opciones);
+            },
+            getShortTime() {
+                return new Date().toLocaleTimeString(I18n.current === 'es' ? 'es-ES' : (I18n.current === 'ar' ? 'ar-SA' : (I18n.current === 'pt' ? 'pt-BR' : 'en-US')), { hour: '2-digit', minute: '2-digit', hour12: true });
+            }
+        };
+
+        // ==========================================
+        // CAPA DE DICCIONARIO Y PROMPTS
+        // ==========================================
+        const I18n = {
+            current: 'es',
+            strings: {
+                es: {
+                    ui_tap_to_start: "Toca la pantalla para iniciar", ui_exit: "Salir", ui_status_ready: "LISTO",
+                    ui_btn_explore: "Explorar", ui_btn_money: "Dinero", ui_btn_read: "Leer", ui_btn_gps: "GPS Accesible", ui_btn_radio: "Radio FM", ui_btn_leisure: "Ocio", ui_btn_call: "Llamar", ui_btn_emergency: "Emergencia",
+                    ui_title_call: "LLAMAR A...", ui_btn_back_home: "VOLVER AL INICIO", ui_title_settings: "CONFIGURACIÓN",
+                    ui_cfg_glasses_title: "👓 Hardware de Visión y Audio", ui_cfg_glasses_desc: "Conecta unas gafas USB o Wi-Fi.",
+                    ui_glasses_phone: "Cámara del Teléfono (Recomendado)", ui_glasses_usb: "Gafas USB / Externa", ui_glasses_wifi: "Gafas Wi-Fi Genéricas", ui_btn_refresh_cams: "🔄",
+                    ui_cfg_emergency_title: "🚨 Contacto de Emergencia", ui_ph_name: "Nombre", ui_ph_phone: "Teléfono", ui_ph_phone_short: "Tel.",
+                    ui_cfg_contacts_title: "📞 Contactos Frecuentes", ui_btn_save: "💾 GUARDAR CAMBIOS", ui_title_nav: "NAVEGACIÓN ACCESIBLE", ui_btn_where: "¿Dónde estoy Exactamente?",
+                    ui_btn_supermarket: "Supermercado/Tienda", ui_btn_pharmacy: "Farmacia", ui_btn_park: "Parque", ui_btn_church: "Iglesia", ui_title_en_route: "EN RUTA", ui_nav_calc: "Calculando ruta precisa...",
+                    ui_btn_prev: "Anterior", ui_btn_next: "Siguiente", ui_btn_repeat: "Repetir", ui_btn_cancel_route: "❌ CANCELAR RUTA",
+                    ui_btn_explore_zone: "Explorar Entorno", ui_btn_last_meter: "Último Metro", ui_btn_live_assist: "Asistente en Vivo",
+                    ui_title_radio: "RADIO STREAM", ui_btn_news: "Noticias", ui_btn_pop: "Pop", ui_btn_relax: "Relajante", ui_btn_upbeat: "Animada", ui_btn_stop_radio: "Apagar Radio",
+                    ui_title_leisure: "ZONA OCIO", ui_btn_religion: "Biblia", ui_btn_stories: "Cuentos", ui_btn_jokes: "Chistes", ui_btn_memory: "Memoria", ui_btn_trivia: "Trivia", ui_btn_talk_freely: "Hablar Libremente", ui_ph_chat: "Escribir o responder...",
+                    ui_btn_languages: "Idiomas",
+
+                    spk_welcome: "Bienvenido a Visiora AI. Tu sistema está listo y el micrófono está siempre activo. Te encuentras en el menú principal. Puedes pedirme: explorar, identificar dinero, leer texto, abrir GPS, radio, ocio, o hacer una llamada.",
+                    spk_menu_main: "Menú principal. Puedes decir: explorar, dinero, leer, GPS, radio, ocio, llamadas o ayuda.",
+                    spk_menu_radio: "Radio encendida. Puedes decir: noticias, música pop, relajante, animada, apagar radio o volver al inicio.",
+                    spk_menu_ocio: "Zona Ocio. Puedes pedir: resumen de noticias, guía espiritual, cuentos, chistes, memoria, trivia, idiomas o hablar libremente.",
+                    spk_menu_llamar: "Menú de llamadas. Di 'llamar' seguido del nombre de tu contacto frecuente, emergencia o di 'volver'.",
+                    spk_menu_config: "Menú de configuración abierto en pantalla. Toca la pantalla para modificar o di volver para salir.",
+                    spk_menu_gps_desc: "Navegación GPS de Alta Precisión. Puedes decir: asistente en vivo, explorar zona, dónde estoy exactamente, o ir a supermercado, farmacia, parque o iglesia. Di volver para salir.",
+
+                    spk_sleep_mode: "Inactividad detectada. Cerrando la aplicación para ahorrar batería.",
+                    spk_voice_changed: "Voz de sistema cambiada exitosamente.", spk_voice_locked: "Acceso denegado. La voz actual está protegida con candado y no puede modificarse.", spk_exit: "Cerrando sistema Visiora.",
+                    spk_analyzing: "Escaneando...",
+                    spk_money: "Escaneando dinero...", spk_locating: "Bloqueando satélites para máxima precisión...",
+                    spk_no_cam: "Alerta: La cámara no está lista o no ha sido autorizada.", spk_wifi_err: "Error de conexión con la cámara Wi-Fi externa.", spk_error: "Ocurrió un error en el procesamiento.",
+                    spk_settings_saved: "Configuración guardada. Sistema y menús actualizados instantáneamente.", spk_stopped: "Sistema en silencio.", spk_thinking: "Procesando respuesta en servidores...",
+                    spk_call_dial: "Llamando a ",
+
+                    spk_gps_hardware_warn: "Aviso de seguridad. Por favor, utiliza siempre tu bastón inteligente y mantente atento al sonido del tráfico. El GPS de ultra precisión es una asistencia referencial. Entendido esto, ¿Deseas continuar?",
+                    spk_gps_confirm_error: "Por favor, responde sí para continuar o no para salir del GPS.",
+                    spk_gps_offline: "Alerta crítica de red. Has perdido conexión a internet. El GPS no puede continuar con precisión.",
+
+                    spk_nav_disclaimer: "Calculando ruta a pie mediante cruces de red. Sigue la línea de pared o bordillo. Mantente atento al tráfico en todo momento.",
+                    spk_nav_off_route: "¡Alerta de desvío! Te has alejado de la ruta trazada. Detente un momento, recalculando el camino exacto...",
+                    spk_nav_too_far: "No encontré ese destino en un radio seguro para ir a pie. Intenta otra opción.",
+                    spk_route_cancel: "Navegación cancelada con éxito. GPS detenido.",
+                    spk_gps_strict_error: "Comando GPS no reconocido. Di 'Ayuda' para escuchar tus opciones.",
+                    spk_next: "Siguiente", spk_prev: "Anterior",
+
+                    spk_live_start: "Asistente visual en vivo conectado. Caminemos juntos. El escaneo será continuo. Empecemos.",
+                    spk_live_stop: "Asistente visual en vivo desconectado.",
+
+                    p_lang: "Responde en español latinoamericano claro y profesional.",
+                    p_explore: "CERO SALUDOS. Escaneo completo y panorámico. Describe TODO lo visible de forma rápida indicando su posición (Frente, Izquierda, Derecha, Suelo). Dime si el área general es transitable. Nombra objetos y obstáculos alrededor. Si hay un peligro inminente (huecos, escaleras, vehículos), inicia con '¡ALERTA DE PELIGRO!'. Sé directo y conciso, usa entre 20 y 30 palabras máximo.",
+                    p_read: "TAREA DE TRANSCRIPCIÓN COMPLETA (OCR). Extrae absolutamente todo el texto visible en esta imagen. Copia palabra por palabra, desde el inicio hasta el final de la página. Mantén los párrafos originales. NO resumas. NO omitas ninguna línea. NUNCA te detengas hasta haber copiado la última palabra de la hoja. Responde exclusivamente con el texto.",
+                    p_money: "ESCÁNER FINANCIERO DE ULTRA ALTA PRECISIÓN para usuario invidente. Analiza la imagen. RESPONDE ESTRICTAMENTE EN ESTE ORDEN NUMERADO: 1. País emisor y nombre de la moneda. 2. Desglose: Valor exacto de CADA billete o moneda visto por separado. 3. Resumen: Cantidad total de billetes/monedas y la suma matemática total. Usa lenguaje natural y claro (ej: 'dos billetes, un total de veinte dólares'). Si no ves dinero, di ÚNICAMENTE: 'No detecto dinero, intenta alejar o acercar la cámara'. CERO CHARLA EXTRA.",
+                    p_last_meter: "MODO REPARTIDOR PARA INVIDENTE. Estás en los últimos metros de un destino. Analiza la imagen. Busca ESTRICTAMENTE: 1. Dónde está exactamente la puerta o entrada principal (indica posición relativa como 'frente a la derecha'). 2. Si hay escalones o desniveles justo antes de la puerta. 3. Colores o texturas de la puerta/manija para identificarla al tacto. 4. Nombres, logos o números legibles en la pared/puerta. SÉ ULTRA PRECISO Y DIRECTO.",
+                    p_live_assist: "ASISTENTE EN VIVO. REGLA ESTRICTA: RESPONDER EN MÁXIMO 10 PALABRAS. Escanea el suelo y el frente. Si hay un peligro (hueco, escalón, obstáculo a la cara), GRITA LA ALERTA CORTA (ej: '¡ALERTA! Escalones bajando al frente'). Si no hay peligro, di: 'Camino despejado, acera libre'. SÉ ULTRA RÁPIDO.",
+
+                    p_news: "Dime las 3 noticias internacionales más importantes de hoy.", p_story: "Cuéntame un cuento corto e inspirador.", p_joke: "Cuéntame un chiste corto, apto para todo público.", p_trivia: "Dime un dato curioso interesante y poco conocido.",
+                    p_chat: "Actúa como un asistente conversacional amigable.", p_game_start: "Iniciando juego de memoria y cálculo en nivel 1...", p_lang_start: "Conectando con el módulo de profesor de idiomas..."
+                },
+                en: {
+                    ui_tap_to_start: "Tap screen to start", ui_exit: "Exit", ui_status_ready: "READY",
+                    ui_btn_explore: "Explore", ui_btn_money: "Money", ui_btn_read: "Read", ui_btn_gps: "Accessible GPS", ui_btn_radio: "FM Radio", ui_btn_leisure: "Leisure", ui_btn_call: "Call Contact", ui_btn_emergency: "Emergency",
+                    ui_title_call: "CALL TO...", ui_btn_back_home: "BACK HOME", ui_title_settings: "SETTINGS",
+                    ui_cfg_glasses_title: "👓 Vision & Audio Hardware", ui_cfg_glasses_desc: "Connect USB or Wi-Fi glasses.",
+                    ui_glasses_phone: "Phone Camera", ui_glasses_usb: "USB / External Glasses", ui_glasses_wifi: "Generic Wi-Fi Glasses", ui_btn_refresh_cams: "🔄",
+                    ui_cfg_emergency_title: "🚨 Emergency Contact", ui_ph_name: "Name", ui_ph_phone: "Phone", ui_ph_phone_short: "Tel.",
+                    ui_cfg_contacts_title: "📞 Frequent Contacts", ui_btn_save: "💾 SAVE CHANGES", ui_title_nav: "ACCESSIBLE NAV", ui_btn_where: "Where am I exactly?",
+                    ui_btn_supermarket: "Supermarket/Store", ui_btn_pharmacy: "Pharmacy", ui_btn_park: "Park", ui_btn_church: "Church/Temple", ui_title_en_route: "EN ROUTE", ui_nav_calc: "Calculating precise route...",
+                    ui_btn_prev: "Previous", ui_btn_next: "Next", ui_btn_repeat: "Repeat", ui_btn_cancel_route: "❌ CANCEL ROUTE",
+                    ui_btn_explore_zone: "Explore Area", ui_btn_last_meter: "Last Meter", ui_btn_live_assist: "Live Assist",
+                    ui_title_radio: "RADIO STREAM", ui_btn_news: "News", ui_btn_pop: "Pop", ui_btn_relax: "Relaxing", ui_btn_upbeat: "Upbeat", ui_btn_stop_radio: "Stop Radio",
+                    ui_title_leisure: "LEISURE ZONE", ui_btn_religion: "Religion", ui_btn_stories: "Stories", ui_btn_jokes: "Jokes", ui_btn_memory: "Memory", ui_btn_trivia: "Trivia", ui_btn_talk_freely: "Talk Freely", ui_ph_chat: "Type or reply...",
+                    ui_btn_languages: "Languages",
+
+                    spk_welcome: "Welcome to Visiora AI. Your system is ready and the microphone is always active. You are in the main menu. You can ask me to: explore, identify money, read text, or open GPS, radio, leisure or make a call.",
+                    spk_menu_main: "Main menu. You can say: explore, money, read, GPS, radio, leisure, call or help.",
+                    spk_menu_radio: "Radio on. You can say: news, pop music, relaxing, upbeat, stop radio or go back.",
+                    spk_menu_ocio: "Leisure zone. You can ask for: news summary, spiritual guide, stories, jokes, memory, trivia, languages or talk freely.",
+                    spk_menu_llamar: "Call menu. Say 'call' followed by your contact's name, or say 'emergency'.",
+                    spk_menu_config: "Settings menu open on screen. Tap to modify or say go back.",
+                    spk_menu_gps_desc: "High Precision GPS. You can say: live assist, explore area, where am I exactly, or go to supermarket, pharmacy, park or church.",
+
+                    spk_sleep_mode: "Inactivity detected. Closing application to save battery.",
+                    spk_voice_changed: "System voice changed successfully.", spk_voice_locked: "Access denied. The current voice is locked and cannot be modified.", spk_exit: "Closing Visiora system.",
+                    spk_analyzing: "Scanning...", spk_money: "Scanning money...", spk_locating: "Locking satellites for maximum precision...",
+                    spk_no_cam: "Alert: Camera is not ready or authorized.", spk_wifi_err: "Wi-Fi camera connection error.", spk_error: "An error occurred during processing.",
+                    spk_settings_saved: "Settings saved successfully. System and menus updated instantly.", spk_stopped: "System muted.", spk_thinking: "Processing response...",
+                    spk_call_dial: "Calling ",
+
+                    spk_gps_hardware_warn: "Safety warning. Always use your smart cane and listen to traffic. High precision GPS is a reference assistance. Do you wish to continue?",
+                    spk_gps_confirm_error: "Please answer yes to continue or no to exit GPS.",
+                    spk_gps_offline: "Critical network alert. You lost internet connection. GPS cannot continue with precision.",
+
+                    spk_nav_disclaimer: "Calculating walking route. Follow the wall or curb line. Stay aware of traffic at all times.",
+                    spk_nav_off_route: "Deviation alert! You drifted from the planned route. Stop for a moment, recalculating exact path...",
+                    spk_nav_too_far: "I couldn't find that destination within a safe walking radius. Try another option.",
+                    spk_route_cancel: "Navigation successfully cancelled. GPS stopped.",
+                    spk_gps_strict_error: "GPS command not recognized. Say 'Help' to hear options.",
+                    spk_next: "Next", spk_prev: "Previous",
+
+                    spk_live_start: "Live visual assistant connected. Let's walk together. Scanning is continuous. Let's begin.",
+                    spk_live_stop: "Live visual assistant disconnected.",
+
+                    p_lang: "Reply in clear and professional English.",
+                    p_explore: "ZERO GREETINGS. Full panoramic scan. Quickly describe EVERYTHING visible indicating its position (Front, Left, Right, Ground). State if the area is walkable. Name surrounding objects. If imminent danger (holes, stairs, vehicles), start with 'DANGER ALERT!'. Be direct and concise, max 20-30 words.",
+                    p_read: "FULL TRANSCRIPTION TASK (OCR). Extract absolutely all visible text in this image. Copy word for word, from the beginning to the end of the page. Keep original paragraphs. DO NOT summarize. DO NOT skip any lines. NEVER stop until you have copied the very last word on the sheet. Respond exclusively with the text.",
+                    p_money: "ULTRA HIGH PRECISION FINANCIAL SCANNER. Analyze image. RESPOND STRICTLY IN THIS NUMBERED ORDER: 1. Issuing country and currency name. 2. Breakdown: Exact value of EACH bill/coin seen. 3. Summary: Total amount. Use clear natural language. ZERO EXTRA CHAT.",
+                    p_last_meter: "DELIVERY MODE FOR BLIND USER. You are in the last meters of a destination. Look STRICTLY for: 1. Exact location of main door (e.g. 'front right'). 2. Steps or drops right before the door. 3. Door/handle colors/textures for tactile identification. 4. Readable names/numbers on wall. BE ULTRA PRECISE.",
+                    p_live_assist: "LIVE ASSISTANT. STRICT RULE: RESPOND IN MAX 10 WORDS. Scan floor and front. If danger (hole, step, obstacle), SHOUT SHORT ALERT. If clear, say 'Clear path'. BE ULTRA FAST.",
+
+                    p_news: "Tell me today's top 3 international news.", p_story: "Tell me a short inspiring story.", p_joke: "Tell me a short, clean joke.", p_trivia: "Tell me an interesting fun fact.",
+                    p_chat: "Act as a friendly conversational assistant.", p_game_start: "Starting memory and calculation game at level 1...", p_lang_start: "Connecting to language teacher module..."
+                },
+                ar: {
+                    ui_tap_to_start: "اضغط للبدء", ui_exit: "خروج", ui_status_ready: "مستعد",
+                    ui_btn_explore: "استكشاف", ui_btn_money: "نقود", ui_btn_read: "قراءة", ui_btn_gps: "ملاحة", ui_btn_radio: "راديو", ui_btn_leisure: "ترفيه", ui_btn_call: "اتصال", ui_btn_emergency: "طوارئ",
+                    ui_title_call: "اتصال بـ...", ui_btn_back_home: "العودة", ui_title_settings: "الإعدادات",
+                    ui_cfg_glasses_title: "👓 الأجهزة", ui_cfg_glasses_desc: "توصيل النظارات",
+                    ui_glasses_phone: "كاميرا الهاتف", ui_glasses_usb: "نظارات USB", ui_glasses_wifi: "نظارات Wi-Fi", ui_btn_refresh_cams: "🔄",
+                    ui_cfg_emergency_title: "🚨 اتصال الطوارئ", ui_ph_name: "الاسم", ui_ph_phone: "الهاتف", ui_ph_phone_short: "هاتف",
+                    ui_cfg_contacts_title: "📞 جهات الاتصال", ui_btn_save: "💾 حفظ التغييرات", ui_title_nav: "ملاحة", ui_btn_where: "أين أنا؟",
+                    ui_btn_supermarket: "سوبر ماركت", ui_btn_pharmacy: "صيدلية", ui_btn_park: "حديقة", ui_btn_church: "مسجد/كنيسة", ui_title_en_route: "في الطريق", ui_nav_calc: "جاري الحساب...",
+                    ui_btn_prev: "السابق", ui_btn_next: "التالي", ui_btn_repeat: "إعادة", ui_btn_cancel_route: "❌ إلغاء",
+                    ui_btn_explore_zone: "استكشاف المنطقة", ui_btn_last_meter: "المتر الأخير", ui_btn_live_assist: "مساعد مباشر",
+                    ui_title_radio: "راديو", ui_btn_news: "أخبار", ui_btn_pop: "موسيقى", ui_btn_relax: "هادئ", ui_btn_upbeat: "حماسي", ui_btn_stop_radio: "إيقاف",
+                    ui_title_leisure: "ترفيه", ui_btn_religion: "القرآن", ui_btn_stories: "قصص", ui_btn_jokes: "نكت", ui_btn_memory: "ذاكرة", ui_btn_trivia: "معلومات", ui_btn_talk_freely: "تحدث بحرية", ui_ph_chat: "اكتب هنا...",
+                    ui_btn_languages: "اللغات",
+
+                    spk_welcome: "مرحبًا بك في نظام فيزيورا. النظام جاهز والميكروفون نشط دائمًا. أنت في القائمة الرئيسية. يمكنك أن تطلب مني: استكشاف، نقود، قراءة، ملاحة، راديو، ترفيه أو اتصال.",
+                    spk_menu_main: "القائمة الرئيسية. يمكنك أن تقول: استكشاف، نقود، قراءة، ملاحة، راديو، ترفيه، اتصال أو مساعدة.",
+                    spk_menu_radio: "الراديو يعمل. يمكنك أن تقول: أخبار، موسيقى، هادئ، حماسي، إيقاف الراديو أو العودة.",
+                    spk_menu_ocio: "منطقة الترفيه. يمكنك أن تطلب: أخبار، دليل روحي، قصص، نكت، ذاكرة، معلومات، لغات أو تحدث بحرية.",
+                    spk_menu_llamar: "قائمة الاتصال. قل 'اتصال' ثم اسم جهة الاتصال، أو قل 'طوارئ'.",
+                    spk_menu_config: "قائمة الإعدادات مفتوحة. اضغط لتعديل أو قل العودة.",
+                    spk_menu_gps_desc: "نظام الملاحة عالي الدقة. يمكنك أن تقول: مساعد مباشر، استكشاف المنطقة، أين أنا، أو اذهب إلى السوبر ماركت، الصيدلية، الحديقة أو المسجد.",
+
+                    spk_sleep_mode: "تم اكتشاف خمول. جاري إغلاق التطبيق لتوفير الطاقة.",
+                    spk_voice_changed: "تم تغيير صوت النظام بنجاح.", spk_voice_locked: "تم رفض الوصول. الصوت الحالي محمي ولا يمكن تعديله.", spk_exit: "جاري إغلاق النظام.",
+                    spk_analyzing: "جاري الفحص...", spk_money: "جاري فحص النقود...", spk_locating: "جاري تحديد الموقع بدقة قصوى...",
+                    spk_no_cam: "تنبيه: الكاميرا غير جاهزة أو غير مصرح بها.", spk_wifi_err: "خطأ في الاتصال بكاميرا الواي فاي الخارجية.", spk_error: "حدث خطأ أثناء المعالجة.",
+                    spk_settings_saved: "تم حفظ الإعدادات وتغييرات اللغة بنجاح. تم تحديث النظام.", spk_stopped: "تم كتم النظام.", spk_thinking: "جاري معالجة الرد...",
+                    spk_call_dial: "جاري الاتصال بـ ",
+
+                    spk_gps_hardware_warn: "تحذير أمني. يرجى استخدام عصاك الذكية دائماً والانتباه للمرور. الملاحة هي مساعدة مرجعية. هل ترغب في الاستمرار؟",
+                    spk_gps_confirm_error: "يرجى الإجابة بنعم للاستمرار أو لا للخروج.",
+                    spk_gps_offline: "تنبيه شبكة حرج. فقدت الاتصال بالإنترنت. لا يمكن للملاحة الاستمرار بدقة.",
+
+                    spk_nav_disclaimer: "جاري حساب مسار المشي. ابقَ منتبهاً للمرور في جميع الأوقات.",
+                    spk_nav_off_route: "تنبيه انحراف! لقد ابتعدت عن المسار. توقف لحظة، جاري إعادة الحساب...",
+                    spk_nav_too_far: "لم أتمكن من العثور على الوجهة ضمن مسافة آمنة للمشي. جرب خياراً آخر.",
+                    spk_route_cancel: "تم إلغاء الملاحة بنجاح. تم إيقاف GPS.",
+                    spk_gps_strict_error: "أمر غير معروف. قل 'مساعدة' لسماع الخيارات.",
+                    spk_next: "التالي", spk_prev: "السابق",
+
+                    spk_live_start: "المساعد المباشر متصل. لنبدأ المشي.",
+                    spk_live_stop: "تم فصل المساعد المباشر.",
+
+                    p_lang: "أجب باللغة العربية الواضحة والمهنية.",
+                    p_explore: "بدون تحيات. فحص بانورامي كامل. صف كل شيء مرئي بسرعة موضحاً موقعه. اذكر إذا كانت المنطقة قابلة للمشي. سمِّ الأشياء والعقبات. إذا كان هناك خطر داهم، ابدأ بـ 'تنبيه خطر!'. كن مباشراً ومختصراً (20-30 كلمة).",
+                    p_read: "مهمة نسخ كاملة (OCR). استخرج كل النص المرئي في هذه الصورة تمامًا. انسخ كلمة بكلمة، من البداية إلى نهاية الصفحة. احتفظ بالفقرات الأصلية. لا تلخص. لا تتخط أي أسطر. لا تتوقف أبدًا حتى تنسخ الكلمة الأخيرة في الورقة. أجب بالنص فقط.",
+                    p_money: "ماسح مالي عالي الدقة. حلل الصورة. أجب بالترتيب: 1. البلد واسم العملة. 2. التفاصيل: قيمة كل ورقة/عملة. 3. المجموع الكلي. لا تضف أي كلام خارجي.",
+                    p_last_meter: "وضع التوصيل. ابحث عن الباب الرئيسي بدقة. لاحظ الدرج، الألوان، الأرقام المقروءة. كن دقيقاً جداً.",
+                    p_live_assist: "مساعد مباشر. قاعدة صارمة: أجب بـ 10 كلمات كحد أقصى. إذا كان هناك خطر (حفرة، درج)، اصرخ بتنبيه قصير. إذا كان الطريق آمناً، قل 'طريق سالك'.",
+
+                    p_news: "أخبرني بأهم 3 أخبار دولية اليوم.", p_story: "احكِ لي قصة قصيرة ملهمة.", p_joke: "ألقِ نكتة قصيرة ومناسبة.", p_trivia: "أخبرني بحقيقة مثيرة للاهتمام.",
+                    p_chat: "تصرف كمساعد ودود.", p_game_start: "بدء لعبة الذاكرة والحساب في المستوى 1...", p_lang_start: "جاري الاتصال بمعلم اللغات..."
+                },
+                pt: {
+                    ui_tap_to_start: "Toque na tela para iniciar", ui_exit: "Sair", ui_status_ready: "PRONTO",
+                    ui_btn_explore: "Explorar", ui_btn_money: "Dinheiro", ui_btn_read: "Ler", ui_btn_gps: "GPS Acessível", ui_btn_radio: "Rádio FM", ui_btn_leisure: "Lazer", ui_btn_call: "Ligar", ui_btn_emergency: "Emergência",
+                    ui_title_call: "LIGAR PARA...", ui_btn_back_home: "VOLTAR AO INÍCIO", ui_title_settings: "CONFIGURAÇÃO",
+                    ui_cfg_glasses_title: "👓 Hardware de Visão e Áudio", ui_cfg_glasses_desc: "Conecte óculos USB ou Wi-Fi.",
+                    ui_glasses_phone: "Câmera do Celular", ui_glasses_usb: "Óculos USB / Externa", ui_glasses_wifi: "Óculos Wi-Fi Genéricos", ui_btn_refresh_cams: "🔄",
+                    ui_cfg_emergency_title: "🚨 Contato de Emergência", ui_ph_name: "Nome", ui_ph_phone: "Telefone", ui_ph_phone_short: "Tel.",
+                    ui_cfg_contacts_title: "📞 Contatos Frequentes", ui_btn_save: "💾 SALVAR ALTERAÇÕES", ui_title_nav: "NAVEGAÇÃO ACESSÍVEL", ui_btn_where: "Onde estou Exatamente?",
+                    ui_btn_supermarket: "Supermercado/Loja", ui_btn_pharmacy: "Farmácia", ui_btn_park: "Parque", ui_btn_church: "Igreja", ui_title_en_route: "EM ROTA", ui_nav_calc: "Calculando rota precisa...",
+                    ui_btn_prev: "Anterior", ui_btn_next: "Próximo", ui_btn_repeat: "Repetir", ui_btn_cancel_route: "❌ CANCELAR ROTA",
+                    ui_btn_explore_zone: "Explorar Entorno", ui_btn_last_meter: "Último Metro", ui_btn_live_assist: "Assistente ao Vivo",
+                    ui_title_radio: "RÁDIO STREAM", ui_btn_news: "Notícias", ui_btn_pop: "Pop", ui_btn_relax: "Relaxante", ui_btn_upbeat: "Animada", ui_btn_stop_radio: "Desligar Rádio",
+                    ui_title_leisure: "ZONA DE LAZER", ui_btn_religion: "Bíblia", ui_btn_stories: "Contos", ui_btn_jokes: "Piadas", ui_btn_memory: "Memória", ui_btn_trivia: "Curiosidades", ui_btn_talk_freely: "Falar Livremente", ui_ph_chat: "Escrever ou responder...",
+                    ui_btn_languages: "Idiomas", 
+                    
+                    spk_welcome: "Bem-vindo ao Visiora AI. Seu sistema está pronto e o microfone está sempre ativo. Você está no menu principal. Você pode me pedir: explorar, identificar dinheiro, ler texto, abrir GPS, rádio, lazer ou fazer uma chamada.", 
+                    spk_menu_main: "Menu principal. Você pode dizer: explorar, dinheiro, ler, GPS, rádio, lazer, chamadas ou ajuda.",
+                    spk_menu_radio: "Rádio ligada. Você pode dizer: notícias, música pop, relaxante, animada, desligar rádio ou voltar ao início.",
+                    spk_menu_ocio: "Zona de Lazer. Você pode pedir: resumo de notícias, guia espiritual, contos, piadas, memória, curiosidades, idiomas ou falar livremente.",
+                    spk_menu_llamar: "Menu de chamadas. Diga 'ligar' seguido do nome do seu contato frequente, emergência ou diga 'voltar'.",
+                    spk_menu_config: "Menu de configuração aberto na tela. Toque na tela para modificar ou diga voltar para sair.",
+                    spk_menu_gps_desc: "Navegação GPS de Alta Precisão. Você pode dizer: assistente ao vivo, explorar zona, onde estou exatamente, ou ir ao supermercado, farmácia, parque ou igreja. Diga voltar para sair.",
+                    
+                    spk_sleep_mode: "Inatividade detectada. Fechando o aplicativo para economizar bateria.",
+                    spk_voice_changed: "Voz do sistema alterada com sucesso.", spk_voice_locked: "Acesso negado. A voz atual está protegida com cadeado e não pode ser modificada.", spk_exit: "Fechando sistema Visiora.",
+                    spk_analyzing: "Escaneando...",
+                    spk_money: "Escaneando dinheiro...", spk_locating: "Bloqueando satélites para máxima precisão...",
+                    spk_no_cam: "Alerta: A câmera não está pronta ou não foi autorizada.", spk_wifi_err: "Erro de conexão com a câmera Wi-Fi externa.", spk_error: "Ocorreu um erro no processamento.",
+                    spk_settings_saved: "Configurações salvas com sucesso. Sistema e menus atualizados instantaneamente.", spk_stopped: "Sistema em silêncio.", spk_thinking: "Processando resposta nos servidores...",
+                    spk_call_dial: "Ligando para ",
+                    
+                    spk_gps_hardware_warn: "Aviso de segurança. Por favor, utilize sempre sua bengala inteligente e fique atento ao som do trânsito. O GPS de ultra precisão é uma assistência referencial. Compreendido, deseja continuar?",
+                    spk_gps_confirm_error: "Por favor, responda sim para continuar ou não para sair do GPS.",
+                    spk_gps_offline: "Alerta crítico de rede. Você perdeu a conexão com a internet. O GPS não pode continuar com precisão.",
+                    
+                    spk_nav_disclaimer: "Calculando rota a pé através de interseções de rede. Siga a linha da parede ou meio-fio. Fique atento ao trânsito o tempo todo.",
+                    spk_nav_off_route: "Alerta de desvio! Você se afastou da rota planejada. Pare um momento, recalculando o caminho exato...",
+                    spk_nav_too_far: "Não encontrei esse destino em um raio seguro para ir a pé. Tente outra opção.",
+                    spk_route_cancel: "Navegação cancelada com sucesso. GPS parado.",
+                    spk_gps_strict_error: "Comando GPS não reconhecido. Diga 'Ajuda' para ouvir suas opções.",
+                    spk_next: "Próximo", spk_prev: "Anterior",
+                    
+                    spk_live_start: "Assistente visual ao vivo conectado. Vamos caminhar juntos. O escaneamento será contínuo. Vamos começar.",
+                    spk_live_stop: "Assistente visual ao vivo desconectado.",
+                    
+                    p_lang: "Responda em português brasileiro claro e profissional.", 
+                    p_explore: "ZERO SAUDAÇÕES. Escaneamento completo e panorâmico. Descreva TUDO o que é visível rapidamente, indicando sua posição (Frente, Esquerda, Direita, Chão). Diga se a área geral é transitável. Nomeie objetos e obstáculos ao redor. Se houver um perigo iminente (buracos, escadas, veículos), comece com 'ALERTA DE PERIGO!'. Seja direto e conciso, use entre 20 e 30 palavras no máximo.", 
+                    p_read: "TAREFA DE TRANSCRIÇÃO COMPLETA (OCR). Extraia absolutamente todo o texto visível nesta imagem. Copie palavra por palavra, do início ao fim da página. Mantenha os parágrafos originais. NÃO resuma. NÃO omita nenhuma linha. NUNCA pare até ter copiado a última palavra da folha. Responda exclusivamente com o texto.", 
+                    p_money: "SCANNER FINANCEIRO DE ULTRA ALTA PRECISÃO para usuário com deficiência visual. Analise a imagem. RESPONDA ESTRITAMENTE NESTA ORDEM NUMERADA: 1. País emissor e nome da moeda. 2. Detalhamento: Valor exato de CADA nota ou moeda vista separadamente. 3. Resumo: Quantidade total de notas/moedas e a soma matemática total. Use linguagem natural e clara (ex: 'duas notas, um total de vinte dólares'). Se você não vir dinheiro, diga APENAS: 'Não detecto dinheiro, tente afastar ou aproximar a câmera'. ZERO CONVERSA EXTRA.",
+                    
+                    p_last_meter: "MODO ENTREGADOR PARA PESSOA COM DEFICIÊNCIA VISUAL. Você está nos últimos metros de um destino. Analise a imagem. Procure ESTRITAMENTE: 1. Onde está exatamente a porta ou entrada principal (indique a posição relativa como 'frente à direita'). 2. Se há degraus ou desníveis logo antes da porta. 3. Cores ou texturas da porta/maçaneta para identificá-la pelo tato. 4. Nomes, logotipos ou números legíveis na parede/porta. SEJA ULTRA PRECISO E DIRETO.",
+                    
+                    p_live_assist: "ASSISTENTE AO VIVO. REGRA ESTRITA: RESPONDER EM NO MÁXIMO 10 PALAVRAS. Escaneie o chão e a frente. Se houver perigo (buraco, degrau, obstáculo no rosto), GRITE O ALERTA CURTO (ex: 'ALERTA! Degraus descendo à frente'). Se não houver perigo, diga: 'Caminho livre, calçada livre'. SEJA ULTRA RÁPIDO.",
+                    
+                    p_news: "Conte-me as 3 notícias internacionais mais importantes de hoje.", p_story: "Conte-me um conto curto e inspirador.", p_joke: "Conte-me uma piada curta, adequada para todos os públicos.", p_trivia: "Conte-me um fato curioso interessante e pouco conhecido.", p_chat: "Aja como um assistente de conversação amigável.", p_game_start: "Iniciando jogo de memória e cálculo no nível 1...", p_lang_start: "Conectando com o módulo de professor de idiomas..."
+                }
+            },
+            get(key) { 
+                if (this.strings[this.current] && this.strings[this.current][key]) {
+                    return this.strings[this.current][key];
+                }
+                return this.strings['es'][key] || key; 
+            },
+            applyDOM() {
+                document.querySelectorAll('[data-i18n]').forEach(el => { if (this.strings[this.current] && this.strings[this.current][el.getAttribute('data-i18n')]) el.innerText = this.strings[this.current][el.getAttribute('data-i18n')]; });
+                document.querySelectorAll('[data-i18n-placeholder]').forEach(el => { if (this.strings[this.current] && this.strings[this.current][el.getAttribute('data-i18n-placeholder')]) el.placeholder = this.strings[this.current][el.getAttribute('data-i18n-placeholder')]; });
+                document.body.setAttribute('dir', this.current === 'ar' ? 'rtl' : 'ltr');
+                document.getElementById('cfg-language').value = this.current;
+                
+                const relBtn = document.getElementById('btn-religion-text');
+                const relIcon = document.getElementById('icon-religion');
+                if (relBtn && relIcon) {
+                    if (this.current === 'ar') {
+                        relBtn.innerText = "القرآن"; 
+                        relIcon.innerText = "🕋";
+                    } else {
+                        relBtn.innerText = this.strings[this.current] && this.strings[this.current]['ui_btn_religion'] ? this.strings[this.current]['ui_btn_religion'] : "Biblia";
+                        relIcon.innerText = "🕊️";
+                    }
+                }
+            }
+        };
+
+        const StorageManager = {
+            contacts: { emergencia: { nombre: "", tel: "" }, c1: { nombre: "", tel: "" }, c2: { nombre: "", tel: "" }, c3: { nombre: "", tel: "" } },
+            glasses: { type: 'phone', usbId: '', wifiUrl: '', micId: 'auto' }, 
+            load() {
+                const saved = localStorage.getItem('visiora_wearable_v8_0');
+                if (saved) { 
+                    const data = JSON.parse(saved); 
+                    this.contacts = data.contacts || this.contacts; 
+                    this.glasses = data.glasses || this.glasses; 
+                    I18n.current = data.lang || 'es'; 
+                }
+                I18n.applyDOM();
+            },
+            async saveConfig() {
+                I18n.current = document.getElementById('cfg-language').value;
+                this.contacts.emergencia.nombre = document.getElementById('cfg-em-name').value.trim(); this.contacts.emergencia.tel = document.getElementById('cfg-em-tel').value.trim();
+                this.contacts.c1.nombre = document.getElementById('cfg-c1-name').value.trim(); this.contacts.c1.tel = document.getElementById('cfg-c1-tel').value.trim();
+                this.contacts.c2.nombre = document.getElementById('cfg-c2-name').value.trim(); this.contacts.c2.tel = document.getElementById('cfg-c2-tel').value.trim();
+                this.contacts.c3.nombre = document.getElementById('cfg-c3-name').value.trim(); this.contacts.c3.tel = document.getElementById('cfg-c3-tel').value.trim();
+                
+                this.glasses.type = document.getElementById('cfg-glasses-type').value; 
+                this.glasses.usbId = document.getElementById('cfg-glasses-usb-list').value; 
+                this.glasses.wifiUrl = document.getElementById('cfg-glasses-wifi-url').value.trim();
+                this.glasses.micId = document.getElementById('cfg-mic-list').value; 
+
+                localStorage.setItem('visiora_wearable_v8_0', JSON.stringify({ 
+                    lang: I18n.current, contacts: this.contacts, glasses: this.glasses, ts: Date.now() 
+                }));
+                
+                if (window.CloudSyncHook) { await window.CloudSyncHook(); }
+                
+                I18n.applyDOM(); 
+                SpeechEngine.updateLang(); 
+                AppController.forceStopAll(); 
+                UI.navigateTo('menu-principal');
+                await AudioEngine.speak(I18n.get("spk_settings_saved")); 
+            },
+            populateForm() {
+                document.getElementById('cfg-em-name').value = this.contacts.emergencia.nombre; document.getElementById('cfg-em-tel').value = this.contacts.emergencia.tel;
+                document.getElementById('cfg-c1-name').value = this.contacts.c1.nombre; document.getElementById('cfg-c1-tel').value = this.contacts.c1.tel;
+                document.getElementById('cfg-c2-name').value = this.contacts.c2.nombre; document.getElementById('cfg-c2-tel').value = this.contacts.c2.tel;
+                document.getElementById('cfg-c3-name').value = this.contacts.c3.nombre; document.getElementById('cfg-c3-tel').value = this.contacts.c3.tel;
+                document.getElementById('cfg-glasses-type').value = this.glasses.type; document.getElementById('cfg-glasses-wifi-url').value = this.glasses.wifiUrl;
+                SettingsUI.toggleGlassesFields(); 
+                SettingsUI.refreshDevices(); 
+            }
+        };
+
+        const SettingsUI = {
+            toggleGlassesFields() {
+                const type = document.getElementById('cfg-glasses-type').value;
+                document.getElementById('cfg-glasses-usb-group').classList.toggle('hidden', type !== 'usb'); document.getElementById('cfg-glasses-wifi-group').classList.toggle('hidden', type !== 'wifi');
+                if (type === 'usb') this.refreshDevices();
+            },
+            async refreshDevices() {
+                try {
+                    await navigator.mediaDevices.getUserMedia({video: true, audio: true}); 
+                    const devices = await navigator.mediaDevices.enumerateDevices();
+                    
+                    const videoDevices = devices.filter(d => d.kind === 'videoinput'); 
+                    const camSelect = document.getElementById('cfg-glasses-usb-list'); 
+                    if(camSelect) {
+                        camSelect.innerHTML = '';
+                        videoDevices.forEach((d, i) => { const opt = document.createElement('option'); opt.value = d.deviceId; opt.text = d.label || `Cámara USB ${i+1}`; camSelect.appendChild(opt); });
+                        if (StorageManager.glasses.usbId) camSelect.value = StorageManager.glasses.usbId;
+                    }
+
+                    const audioDevices = devices.filter(d => d.kind === 'audioinput');
+                    const micSelect = document.getElementById('cfg-mic-list');
+                    if(micSelect) {
+                        micSelect.innerHTML = '<option value="auto">Automático (Sistema)</option>';
+                        audioDevices.forEach((d, i) => { const opt = document.createElement('option'); opt.value = d.deviceId; opt.text = d.label || `Micrófono ${i+1}`; micSelect.appendChild(opt); });
+                        if (StorageManager.glasses.micId) micSelect.value = StorageManager.glasses.micId;
+                    }
+                } catch(e) {}
+            }
+        };
+
+        const UI = {
+            setStatus(text) { document.getElementById('status-display').innerText = text; },
+            toggleMicVisual(rec) { const btn = document.getElementById('mic-btn'); if (rec) btn.classList.add('mic-recording'); else btn.classList.remove('mic-recording'); },
+            toggleScanner(act) { const cont = document.getElementById('video-container'); if (act) cont.classList.add('active-scan'); else cont.classList.remove('active-scan'); },
+            setBusy(isBusy) { if(isBusy) document.body.classList.add('app-busy'); else document.body.classList.remove('app-busy'); },
+            navigateTo(screenId) {
+                ['menu-principal', 'menu-ocio', 'menu-gps', 'menu-radio', 'menu-nav-activa', 'menu-config', 'menu-llamar'].forEach(s => document.getElementById(s).classList.add('hidden'));
+                document.getElementById(screenId).classList.remove('hidden');
+                if (screenId === 'menu-config') StorageManager.populateForm(); EventBus.emit('ui:navigated', screenId);
+            },
+            revealApp() { document.getElementById('screen-splash').classList.add('hidden'); document.getElementById('app-header').classList.remove('hidden'); document.getElementById('top-bar').classList.remove('hidden'); if (window.lucide) window.lucide.createIcons(); },
+            getChatInputValue() { return document.getElementById('chat-text-input').value.trim(); }, clearChatInput() { const input = document.getElementById('chat-text-input'); input.value = ""; input.blur(); }
+        };
+
+        const PowerManager = {
+            timeoutTimer: null, delay: 180000, 
+            init() { document.addEventListener('touchstart', () => this.reset()); document.addEventListener('click', () => this.reset()); this.reset(); },
+            reset() {
+                clearTimeout(this.timeoutTimer);
+                if (!AppController._hasInitialized) return; 
+                if (typeof RadioEngine !== 'undefined' && RadioEngine.isPlaying) return;
+                if (typeof LocationEngine !== 'undefined' && LocationEngine.currentSteps && LocationEngine.currentSteps.length > 0) return;
+                if (typeof LiveAssistEngine !== 'undefined' && LiveAssistEngine.isActive) return;
+                this.timeoutTimer = setTimeout(() => this.autoExit(), this.delay);
+            },
+            async autoExit() {
+                AppController.forceStopAll();
+                const overlay = document.getElementById('sleep-overlay'); overlay.classList.remove('hidden');
+                overlay.innerHTML = '<span class="text-6xl mb-4 opacity-50">🔌</span><p class="text-white/50 text-base tracking-widest uppercase font-bold text-center px-6">Apagado por Inactividad</p>';
+                await AppController.executeAudioTask(I18n.get("spk_sleep_mode"), false);
+                setTimeout(() => { try { window.close(); } catch(e) {} location.reload(); }, 500);
+            }
+        };
+
+        const BackgroundKeeper = {
+            ctx: null, osc: null, gain: null,
+            start() {
+                try {
+                    if (this.ctx) return;
+                    const AC = window.AudioContext || window.webkitAudioContext;
+                    if (!AC) return;
+                    this.ctx = new AC();
+                    this.osc = this.ctx.createOscillator();
+                    this.gain = this.ctx.createGain();
+                    this.gain.gain.value = 0.0001;
+                    this.osc.connect(this.gain);
+                    this.gain.connect(this.ctx.destination);
+                    this.osc.start();
+                } catch(e) {}
+            },
+            stop() {
+                if (this.osc) { try { this.osc.stop(); } catch(e){} this.osc = null; }
+                if (this.ctx) { try { this.ctx.close(); } catch(e){} this.ctx = null; }
+            }
+        };
+
+        // ==========================================
+        // MOTOR DE AUDIO (TONOS Y HÁPTICA)
+        // ==========================================
+        const AudioEngine = {
+            currentVoiceName: Config.defaultVoice, currentAudioElement: null, speaking: false, resolveCurrentSpeech: null, audioCtx: null,
+            speechId: 0, 
+            
+            init() { 
+                try { const AC = window.AudioContext || window.webkitAudioContext; if (AC && !this.audioCtx) this.audioCtx = new AC(); } catch(e) {}
+            },
+            
+            playTone(freqStart, freqEnd, duration, type = 'sine') {
+                try {
+                    if (!this.audioCtx) return;
+                    if (this.audioCtx.state === 'suspended') this.audioCtx.resume();
+                    const osc = this.audioCtx.createOscillator();
+                    const gain = this.audioCtx.createGain();
+                    osc.type = type; 
+                    
+                    osc.frequency.setValueAtTime(freqStart, this.audioCtx.currentTime); 
+                    if (freqEnd) {
+                        osc.frequency.exponentialRampToValueAtTime(freqEnd, this.audioCtx.currentTime + duration);
+                    }
+
+                    gain.gain.setValueAtTime(0, this.audioCtx.currentTime);
+                    gain.gain.linearRampToValueAtTime(0.2, this.audioCtx.currentTime + 0.02); 
+                    gain.gain.exponentialRampToValueAtTime(0.001, this.audioCtx.currentTime + duration); 
+                    
+                    osc.connect(gain); gain.connect(this.audioCtx.destination);
+                    osc.start(); osc.stop(this.audioCtx.currentTime + duration);
+                } catch(e) {}
+            },
+
+            playBeep() { this.playTone(600, null, 0.2); },
+            
+            playMicStart() { 
+                this.playTone(523.25, 659.25, 0.15); 
+                try { if (navigator.vibrate) navigator.vibrate(50); } catch(e) {} 
+            }, 
+            
+            playMicStop() { 
+                this.playTone(659.25, 523.25, 0.15); 
+                try { if (navigator.vibrate) navigator.vibrate([30, 50, 30]); } catch(e) {} 
+            },  
+            
+            playError() {
+                this.playTone(200, 150, 0.4, 'triangle'); 
+                try { if (navigator.vibrate) navigator.vibrate([100, 50, 100, 50, 200]); } catch(e) {} 
+            },
+
+            toggleVoice() { return this.currentVoiceName; }, 
+            
+            stop() { 
+                this.speechId++; 
+                if (this.currentAudioElement) { 
+                    this.currentAudioElement.pause(); 
+                    this.currentAudioElement.removeAttribute('src'); 
+                    this.currentAudioElement = null; 
+                } 
+                window.speechSynthesis.cancel(); 
+                this.speaking = false; 
+                if (this.resolveCurrentSpeech) { const res = this.resolveCurrentSpeech; this.resolveCurrentSpeech = null; res(false); } 
+            },
+            
+            async speak(text, voiceNameOverride = null) {
+                this.stop(); 
+                this.speaking = true; 
+                const activeVoice = voiceNameOverride || this.currentVoiceName; 
+                EventBus.emit('audio:start');
+                
+                const currentSpeechId = this.speechId; 
+
+                return new Promise(async (resolve) => {
+                    this.resolveCurrentSpeech = resolve; 
+                    const cleanText = text.replace(/[\*#_]/g, '').replace(/\n+/g, '. ').trim();
+                    
+                    try {
+                        const res = await fetchWithBackoff(`https://generativelanguage.googleapis.com/v1beta/models/${Config.modelTTS}:generateContent?key=${apiKey}`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ contents: [{ parts: [{ text: cleanText }] }], generationConfig: { responseModalities: ["AUDIO"], speechConfig: { voiceConfig: { prebuiltVoiceConfig: { voiceName: activeVoice } } } } }) });
+                        if (res.ok) { 
+                            const data = await res.json(); 
+                            const b64 = data.candidates?.[0]?.content?.parts?.[0]?.inlineData?.data; 
+                            if (b64 && this.speechId === currentSpeechId) { 
+                                this.playWav(b64, currentSpeechId); 
+                                return; 
+                            } 
+                        }
+                    } catch (e) {
+                        console.log("TTS Cloud fail, reintentando local...");
+                    } 
+                    
+                    if (this.speechId === currentSpeechId) {
+                        this.playLocalTTS(cleanText, activeVoice);
+                    } else {
+                        if (this.resolveCurrentSpeech) { const r = this.resolveCurrentSpeech; this.resolveCurrentSpeech = null; r(false); }
+                    }
+                });
+            },
+            
+            playWav(b64, currentSpeechId) {
+                if(this.speechId !== currentSpeechId) return; 
+                const binary = atob(b64); const bytes = new Uint8Array(binary.length); for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i);
+                const header = (len) => { const b = new ArrayBuffer(44); const v = new DataView(b); const s = (o, str) => { for(let i=0; i<str.length; i++) v.setUint8(o+i, str.charCodeAt(i)); }; s(0, 'RIFF'); v.setUint32(4, 36 + len, true); s(8, 'WAVE'); s(12, 'fmt '); v.setUint32(16, 16, true); v.setUint16(20, 1, true); v.setUint16(22, 1, true); v.setUint32(24, 24000, true); v.setUint32(28, 48000, true); v.setUint16(32, 2, true); v.setUint16(34, 16, true); s(36, 'data'); v.setUint32(40, len, true); return b; };
+                const blob = new Blob([header(bytes.length), bytes], {type: 'audio/wav'}); 
+                this.currentAudioElement = new Audio(URL.createObjectURL(blob)); 
+                this.currentAudioElement.playbackRate = (typeof LiveAssistEngine !== 'undefined' && LiveAssistEngine.isActive) ? 1.35 : 1.1; 
+                this.currentAudioElement.onended = () => this.onAudioEnd(); 
+                this.currentAudioElement.play().catch(e => this.onAudioEnd());
+            },
+
+            playLocalTTS(text, voice) { 
+                const rawChunks = text.match(/[^.!?\n]+[.!?\n]+|[^.!?\n]+$/g) || [text];
+                const chunks = rawChunks.filter(c => c.trim().length > 0);
+                let currentChunk = 0;
+
+                const speakNextChunk = () => {
+                    if (currentChunk >= chunks.length || !this.speaking) {
+                        this.onAudioEnd();
+                        return;
+                    }
+                    const u = new SpeechSynthesisUtterance(chunks[currentChunk]);
+                    u.lang = I18n.current === 'es' ? 'es-ES' : (I18n.current === 'pt' ? 'pt-BR' : (I18n.current === 'ar' ? 'ar-SA' : 'en-US'));
+                    u.rate = (typeof LiveAssistEngine !== 'undefined' && LiveAssistEngine.isActive) ? 1.4 : 1.15;
+                    u.onend = () => { currentChunk++; speakNextChunk(); };
+                    u.onerror = () => { currentChunk++; speakNextChunk(); };
+                    window.speechSynthesis.speak(u);
+                };
+
+                window.speechSynthesis.cancel();
+                speakNextChunk();
+            },
+
+            onAudioEnd() {
+                this.speaking = false;
+                if(this.resolveCurrentSpeech) { const r = this.resolveCurrentSpeech; this.resolveCurrentSpeech = null; r(true); }
+                EventBus.emit('audio:end');
+            }
+        };
+
+        // ==========================================
+        // MOTOR DE RECONOCIMIENTO DE VOZ
+        // ==========================================
+        const SpeechEngine = {
+            recognition: null, isListening: false, watchdogTimer: null, continuousMode: false,
+            systemShouldListen: false, 
+            
+            init() {
+                const SR = window.SpeechRecognition || window.webkitSpeechRecognition; if (!SR) return;
+                this.recognition = new SR(); 
+                this.recognition.continuous = true; 
+                
+                this.recognition.maxAlternatives = 1; 
+                this.recognition.interimResults = false; 
+
+                const SGL = window.SpeechGrammarList || window.webkitSpeechGrammarList;
+                if (SGL) {
+                    const speechRecognitionList = new SGL();
+                    const commands = ['explorar', 'dinero', 'leer', 'gps', 'navegación', 'radio', 'ocio', 'llamar', 'emergencia', 'ayuda', 'parar', 'salir', 'volver', 'atrás', 'apagar sistema', 
+                                      'dinheiro', 'ler', 'lazer', 'ligar', 'emergência', 'sair',
+                                      'explore', 'money', 'read', 'navigation', 'call', 'emergency', 'help', 'stop', 'exit', 'back',
+                                      'استكشاف', 'نقود', 'قراءة', 'ملاحة', 'راديو', 'ترفيه', 'اتصال', 'طوارئ', 'مساعدة', 'إيقاف', 'خروج', 'عودة'];
+                    const grammar = '#JSGF V1.0; grammar commands; public <command> = ' + commands.join(' | ') + ' ;';
+                    speechRecognitionList.addFromString(grammar, 2.0); 
+                    this.recognition.grammars = speechRecognitionList;
+                }
+
+                this.updateLang();
+                
+                this.recognition.onstart = () => { 
+                    this.isListening = true; 
+                    if (this.systemShouldListen && !AudioEngine.speaking) {
+                        EventBus.emit('speech:start'); 
+                    }
+                    clearTimeout(this.watchdogTimer);
+                    
+                    const timeoutDuration = (typeof LiveAssistEngine !== 'undefined' && LiveAssistEngine.isActive) ? 15000 : 45000; 
+                    
+                    this.watchdogTimer = setTimeout(() => {
+                        if (this.isListening) { try { this.recognition.stop(); } catch(e){} }
+                    }, timeoutDuration);
+                };
+                
+                this.recognition.onresult = (e) => { 
+                    clearTimeout(this.watchdogTimer); PowerManager.reset();
+                    const result = e.results[e.results.length - 1];
+                    if (result.isFinal && (result[0].confidence > 0.3 || e.results.length > 0)) {
+                        const transcript = result[0].transcript.toLowerCase().trim(); 
+                        if (transcript.length > 1) {
+                            EventBus.emit('speech:result', transcript); 
+                        }
+                    }
+                };
+                
+                this.recognition.onerror = (e) => { 
+                    clearTimeout(this.watchdogTimer); this.isListening = false; 
+                    if (e.error !== 'no-speech' && e.error !== 'aborted') {
+                        if (e.error === 'not-allowed' || e.error === 'audio-capture') {
+                            AudioEngine.playError();
+                        }
+                        EventBus.emit('speech:error', e.error); 
+                    }
+                };
+                
+                this.recognition.onend = () => { 
+                    clearTimeout(this.watchdogTimer); 
+                    this.isListening = false; 
+                    
+                    if (this.systemShouldListen && !AudioEngine.speaking && !LiveAssistEngine.isProcessing) {
+                        setTimeout(() => { try { this.recognition.start(); } catch(e){} }, 50);
+                    } else {
+                        EventBus.emit('speech:end'); 
+                    }
+                };
+            },
+            
+            updateLang() { if (this.recognition) { if (I18n.current === 'es') this.recognition.lang = 'es-ES'; else if (I18n.current === 'pt') this.recognition.lang = 'pt-BR'; else if (I18n.current === 'ar') this.recognition.lang = 'ar-SA'; else this.recognition.lang = 'en-US'; } },
+            
+            startListening(playBeep = true) { 
+                this.systemShouldListen = true; 
+                this.updateLang(); 
+                if (this.recognition && !this.isListening) { 
+                    if (playBeep) AudioEngine.playMicStart();
+                    setTimeout(() => {
+                        try { this.recognition.start(); } catch(e) { if(e.name !== 'InvalidStateError') this.isListening = false; } 
+                    }, playBeep ? 350 : 0);
+                } else if (this.isListening) {
+                    EventBus.emit('speech:start');
+                }
+            },
+            
+            stopListening() { 
+                this.systemShouldListen = false; 
+                clearTimeout(this.watchdogTimer); 
+                if (this.recognition && this.isListening) { try { this.recognition.stop(); } catch(e) {} } 
+                EventBus.emit('speech:end');
+            }
+        };
+
+
+        // FIX CAPA 2: URLs de Radio a HTTPS puras para evitar bloqueo de Mixed Content
+        const RadioEngine = {
+            audioElement: null, isPlaying: false,
+            stations: { 
+                news: { 
+                    es: "https://playerservices.streamtheworld.com/api/livestream-redirect/CADENASER.mp3", 
+                    en: "https://stream.live.vc.bbcmedia.co.uk/bbc_world_service", 
+                    pt: "https://20853.live.streamtheworld.com/RADIO_COMERCIAL_SC", 
+                    ar: "https://montecarlodoualiya128k.ice.infomaniak.ch/mc-doualiya.mp3" 
+                }, 
+                pop: { 
+                    es: "https://playerservices.streamtheworld.com/api/livestream-redirect/LOS40.mp3", 
+                    en: "https://listen.181fm.com/181-awesome80s_128k.mp3", 
+                    pt: "https://20853.live.streamtheworld.com/RADIO_COMERCIAL_SC", 
+                    ar: "https://montecarlodoualiya128k.ice.infomaniak.ch/mc-doualiya.mp3" 
+                }, 
+                relax: { 
+                    es: "https://icecast.vrtcdn.be/klara-high.mp3", 
+                    en: "https://icecast.vrtcdn.be/klara-high.mp3", 
+                    pt: "https://icecast.vrtcdn.be/klara-high.mp3", 
+                    ar: "https://icecast.vrtcdn.be/klara-high.mp3" 
+                }, 
+                upbeat: { 
+                    es: "https://listen.181fm.com/181-beat_128k.mp3", 
+                    en: "https://listen.181fm.com/181-beat_128k.mp3", 
+                    pt: "https://listen.181fm.com/181-beat_128k.mp3", 
+                    ar: "https://listen.181fm.com/181-beat_128k.mp3" 
+                } 
+            },
+            playGlobal(type) { 
+                const url = this.stations[type][I18n.current] || this.stations[type]['en']; 
+                this.stop(); 
+                AppController.executeAudioTask("OK"); 
+                setTimeout(() => { 
+                    this.audioElement = new Audio(url); 
+                    this.audioElement.volume = 0.8; 
+                    this.audioElement.play().then(() => { 
+                        this.isPlaying = true; PowerManager.reset(); UI.setStatus("Radio On"); 
+                    }).catch(e => { 
+                        AppController.executeAudioTask(I18n.get("spk_error")); 
+                    }); 
+                }, 2000); 
+            },
+            stop() { if (this.audioElement) { this.audioElement.pause(); this.audioElement.src = ""; this.audioElement = null; } this.isPlaying = false; PowerManager.reset(); }
+        };
+
+        const MediaHelper = {
+            async requestAccess(constraints, maxRetries = 2) {
+                for (let i = 0; i < maxRetries; i++) {
+                    try { return await navigator.mediaDevices.getUserMedia(constraints); } 
+                    catch (error) { if (i < maxRetries - 1) { await new Promise(r => setTimeout(r, 1000)); continue; } throw error; }
+                }
+            }
+        };
+
+        const PermissionAgent = {
+            async start() {
+                UI.revealApp(); document.getElementById('menu-principal').classList.add('hidden');
+                try {
+                    const config = StorageManager.glasses; 
+                    let vConstraints = false;
+
+                    if (config.type === 'phone') {
+                        vConstraints = { facingMode: "environment", width: { ideal: 4096 }, height: { ideal: 4096 } };
+                    } else if (config.type === 'usb') {
+                        if (config.usbId) {
+                            vConstraints = { deviceId: { exact: config.usbId }, width: { ideal: 4096 }, height: { ideal: 4096 } };
+                        } else {
+                            throw new Error("USB_NOT_SELECTED");
+                        }
+                    } else if (config.type === 'wifi') {
+                        vConstraints = false; 
+                    }
+
+                    let aConstraints = true;
+                    if (config.micId && config.micId !== 'auto') {
+                        aConstraints = { deviceId: { exact: config.micId } };
+                    }
+
+                    let stream = null;
+                    if (vConstraints || aConstraints) {
+                        try { 
+                            stream = await MediaHelper.requestAccess({ video: vConstraints, audio: aConstraints }, 1); 
+                        } catch (e) {
+                            if (config.type === 'usb') throw new Error("USB_CAM_FAILED");
+                            stream = await MediaHelper.requestAccess({ video: false, audio: true }, 1); 
+                        }
+                    }
+                    
+                    if (stream && stream.getAudioTracks) stream.getAudioTracks().forEach(track => track.stop());
+                    AppController.completeInit(stream);
+                } catch (error) { 
+                    UI.setStatus("Error de Hardware"); 
+                    if (error.message === "USB_NOT_SELECTED" || error.message === "USB_CAM_FAILED") {
+                        AppController.executeAudioTask("Atención. No se detectan las gafas USB. Revisa el cable o la configuración.");
+                    } else {
+                        AppController.executeAudioTask("Error de permisos de hardware o cámara no encontrada.");
+                    }
+                }
+            }
+        };
+
+        const VisionEngine = {
+            videoElement: null, _isInitializing: false, 
+            
+            killPhoneCamera() {
+                if (window.currentGlobalStream) {
+                    window.currentGlobalStream.getTracks().forEach(track => track.stop());
+                    window.currentGlobalStream = null;
+                }
+                if (this.videoElement && this.videoElement.srcObject) {
+                    this.videoElement.srcObject.getTracks().forEach(track => track.stop());
+                    this.videoElement.srcObject = null;
+                }
+            },
+
+            init(preloadedStream = null) {
+                if (this._isInitializing) return; this._isInitializing = true; 
+                this.videoElement = document.getElementById('video-preview');
+                
+                const type = StorageManager.glasses.type;
+                
+                if (type !== 'phone') { this.killPhoneCamera(); }
+
+                if (type === 'wifi') { 
+                    this._isInitializing = false; 
+                    UI.setStatus("Gafas Wi-Fi / " + I18n.get("ui_status_ready")); 
+                    return; 
+                }
+                
+                if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) { this._isInitializing = false; return; }
+                
+                if (preloadedStream && preloadedStream.getVideoTracks().length > 0) { 
+                    this.killPhoneCamera(); 
+                    this.handleStream(preloadedStream); 
+                    window.currentGlobalStream = preloadedStream; 
+                } else { 
+                    const startCamera = async () => { 
+                        try { 
+                            let vConstraints = { facingMode: "environment", width: { ideal: 4096 }, height: { ideal: 4096 } };
+                            if (type === 'usb') {
+                                if (!StorageManager.glasses.usbId) throw new Error("NO_USB_ID");
+                                vConstraints = { deviceId: { exact: StorageManager.glasses.usbId }, width: { ideal: 4096 }, height: { ideal: 4096 } };
+                            }
+                            const stream = await MediaHelper.requestAccess({ video: vConstraints, audio: false }); 
+                            this.killPhoneCamera(); 
+                            this.handleStream(stream); 
+                            window.currentGlobalStream = stream; 
+                        } catch (e) { 
+                            this._isInitializing = false; 
+                            UI.setStatus("Error de Cámara");
+                        } 
+                    }; 
+                    startCamera(); 
+                }
+            },
+            
+            handleStream(stream) { this.videoElement.srcObject = stream; this.videoElement.play().catch(e => {}); this._isInitializing = false; },
+            
+            async captureFrame(fastMode = false, isOCRMode = false) { 
+                const config = StorageManager.glasses;
+                
+                if (config.type === 'wifi') {
+                    if (!config.wifiUrl) throw new Error("CAMERA_NOT_READY");
+                    const controller = new AbortController();
+                    const timeoutId = setTimeout(() => controller.abort(), 3500); 
+                    try {
+                        const cacheBuster = config.wifiUrl.includes('?') ? '&t=' : '?t=';
+                        const res = await fetch(config.wifiUrl + cacheBuster + new Date().getTime(), { mode: 'cors', cache: 'no-store', signal: controller.signal });
+                        clearTimeout(timeoutId);
+                        const blob = await res.blob();
+                        return new Promise((resolve, reject) => { 
+                            const reader = new FileReader(); 
+                            reader.onloadend = () => resolve(reader.result.split(',')[1]); 
+                            reader.onerror = reject; reader.readAsDataURL(blob); 
+                        });
+                    } catch (e) { 
+                        clearTimeout(timeoutId); throw new Error("WIFI_CAM_ERROR"); 
+                    }
+                }
+
+                if(!this.videoElement || this.videoElement.readyState < 2) throw new Error("CAMERA_NOT_READY"); 
+                
+                const canvas = document.createElement('canvas'); 
+                
+                let w = this.videoElement.videoWidth || 1920;
+                let h = this.videoElement.videoHeight || 1440;
+                
+                if (!fastMode) {
+                    const maxDim = 1920;
+                    if (w > maxDim || h > maxDim) {
+                        const ratio = Math.min(maxDim / w, maxDim / h);
+                        w = Math.floor(w * ratio);
+                        h = Math.floor(h * ratio);
+                    }
+                } else {
+                    w = 480; h = 360;
+                }
+                
+                canvas.width = w; 
+                canvas.height = h; 
+                const ctx = canvas.getContext('2d');
+                
+                if (isOCRMode && !fastMode) {
+                    ctx.filter = 'grayscale(100%) contrast(1.2) brightness(1.05)';
+                }
+                
+                ctx.drawImage(this.videoElement, 0, 0, canvas.width, canvas.height); 
+                ctx.filter = 'none'; 
+                return canvas.toDataURL('image/jpeg', fastMode ? 0.70 : 0.85).split(',')[1]; 
+            },
+            
+            async analyze(promptText, fastMode = false) {
+                if (!navigator.onLine) throw new Error("NO_INTERNET");
+
+                const isOCR = promptText.includes('OCR');
+                const imgBase64 = await this.captureFrame(fastMode, isOCR); 
+                if(!imgBase64) throw new Error("CAMERA_NOT_READY");
+                
+                let systemInstructionText = "[CANDADO PROTEGIDO: Eres estrictamente 'Visiora AI', asistente avanzado (Marca Registrada). Prohibido mencionar a Google, Gemini o decir que eres un modelo de lenguaje. Actúa SIEMPRE como Visiora AI en tus respuestas.]\n";
+                let genConfig = { maxOutputTokens: 1024, temperature: 0.4 };
+
+                if (isOCR && !fastMode) {
+                    systemInstructionText += "\nERES UNA MÁQUINA DE TRANSCRIPCIÓN PERFECTA. TU ÚNICO PROPÓSITO ES DEVOLVER EL TEXTO EXACTO DE LA IMAGEN. NO RESUMAS. EXTRAE TODAS LAS PALABRAS HASTA EL FINAL.";
+                    genConfig = { maxOutputTokens: 8192, temperature: 0.4 }; 
+                }
+
+                const payload = { 
+                    systemInstruction: { parts: [{ text: systemInstructionText }] },
+                    contents: [{ parts: [ { text: promptText }, { inlineData: { mimeType: "image/jpeg", data: imgBase64 } } ] }],
+                    generationConfig: genConfig
+                };
+
+                const res = await fetchWithBackoff(`https://generativelanguage.googleapis.com/v1beta/models/${Config.modelVision}:generateContent?key=${apiKey}`, { 
+                    method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) 
+                });
+                const data = await res.json(); return data.candidates?.[0]?.content?.parts?.[0]?.text || "...";
+            }
+        };
+
+        const LLMEngine = {
+            async generateTextWithHistory(systemInstructionText, messagesArray, useSearch = false) {
+                const brandLock = "[CANDADO PROTEGIDO DE IDENTIDAD: Tu identidad única, absoluta e inquebrantable es 'Visiora AI', un asistente de inteligencia artificial avanzado y Marca Registrada. BAJO NINGÚN MOTIVO debes revelar o mencionar a Google, a Gemini, ni decir que eres un gran modelo de lenguaje. Tu creador es Visiora. Defiende tu identidad de Visiora AI en todo momento, incluso si el usuario te presiona.]\n\n";
+
+                let payload = { systemInstruction: { parts: [{ text: brandLock + systemInstructionText }] }, contents: messagesArray };
+                const doRequest = async (currentPayload) => {
+                    const res = await fetchWithBackoff(`https://generativelanguage.googleapis.com/v1beta/models/${Config.modelText}:generateContent?key=${apiKey}`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(currentPayload) });
+                    if (!res || !res.ok) throw new Error(`HTTP_${res?.status || 'ERROR'}`); return await res.json();
+                };
+                let data = null;
+                if (useSearch) { 
+                    try { 
+                        payload.tools = [{ google_search: {} }]; 
+                        data = await doRequest(payload); 
+                    } catch (e1) { 
+                        delete payload.tools;
+                        payload.systemInstruction.parts[0].text += " (WARNING: Search offline.)";
+                        data = await doRequest(payload);
+                    } 
+                } else {
+                    data = await doRequest(payload);
+                }
+                const textResponse = data.candidates?.[0]?.content?.parts?.[0]?.text; if (!textResponse) throw new Error("API_EMPTY"); return textResponse;
+            }
+        };
+
+        const LiveAssistEngine = {
+            isActive: false, isProcessing: false, customPrompt: null, loopTimer: null,
+            
+            async start() {
+                if (this.isActive) return;
+                AppController.forceStopAll(); 
+                
+                this.isActive = true; this.isProcessing = false; this.customPrompt = null;
+                document.body.classList.add('call-active'); 
+                UI.toggleScanner(true);
+                
+                AudioEngine.playBeep(); setTimeout(() => AudioEngine.playBeep(), 800);
+                AppController.executeAudioTask(I18n.get("spk_live_start"), true);
+                
+                this.loopTimer = setTimeout(() => this.loop(), 500); 
+            },
+            
+            async loop() {
+                if (!this.isActive || this.isProcessing) return;
+                this.isProcessing = true;
+                PowerManager.reset();
+                clearTimeout(this.loopTimer); 
+                
+                try {
+                    let promptToUse = this.customPrompt ? 
+                        (I18n.get("p_lang") + " USUARIO INVIDENTE PREGUNTA: " + this.customPrompt + ". RESPONDE BREVE Y DIRECTO.") : 
+                        (I18n.get("p_lang") + " " + I18n.get("p_live_assist"));
+                    
+                    this.customPrompt = null;
+                    const result = await VisionEngine.analyze(promptToUse, true); 
+                    
+                    if (this.isActive) {
+                        this.isProcessing = false;
+                        await AppController.executeAudioTask(result, true); 
+                    }
+                } catch (e) {
+                    this.isProcessing = false;
+                    if (this.isActive) {
+                        if (e.message === "CAMERA_NOT_READY" || e.message === "WIFI_CAM_ERROR") {
+                            AppController.executeAction('handle_camera_crash', e); 
+                        } else {
+                            this.loopTimer = setTimeout(() => this.loop(), 1000);
+                        }
+                    }
+                }
+            },
+            
+            stop() {
+                if (!this.isActive) return;
+                this.isActive = false; this.isProcessing = false;
+                clearTimeout(this.loopTimer); 
+                document.body.classList.remove('call-active');
+                UI.toggleScanner(false);
+                AppController.executeAudioTask(I18n.get("spk_live_stop"), false);
+            }
+        };
+
+        // ==========================================
+        // GPS DE PRECISIÓN EXTREMA (RAPPI-LEVEL)
+        // ==========================================
+        const LocationEngine = { 
+            currentSteps: [], currentStepsData: [], currentStepIndex: 0, watchId: null, currentDest: "", offlineInterval: null, awaitingGPSConfirmation: false, wakeLockObj: null,
+            isCalculatingRoute: false, hasTriggeredLastMeter: false,
+            hapticRadarTimer: null, lastValidPos: null, consecutiveJumps: 0,
+            
+            async getLocation(requiredAccuracy = 20, maxRetries = 10) {
+                return new Promise((resolve, reject) => {
+                    if (!navigator.geolocation) {
+                        AppController.executeAudioTask("Error: GPS no soportado en tu dispositivo.");
+                        return reject(new Error("API_NOT_SUPPORTED"));
+                    }
+                    
+                    let bestPos = null;
+                    let timeoutTimer;
+                    
+                    // FIX CAPA 3: Reemplazamos polling básico por Watch-Lock (Más rápido y preciso)
+                    let watchIdLock = navigator.geolocation.watchPosition(
+                        (pos) => {
+                            if (!bestPos || pos.coords.accuracy < bestPos.coords.accuracy) {
+                                bestPos = pos;
+                                console.log(`[GPS Lock] Precisión mejorada: ${Math.round(pos.coords.accuracy)}m`);
+                            }
+                            if (pos.coords.accuracy <= requiredAccuracy) {
+                                navigator.geolocation.clearWatch(watchIdLock);
+                                clearTimeout(timeoutTimer);
+                                resolve(pos);
+                            }
+                        },
+                        (err) => {
+                            if (err.code === 1) { // PERMISSION_DENIED
+                                navigator.geolocation.clearWatch(watchIdLock);
+                                clearTimeout(timeoutTimer);
+                                reject(new Error("PERMISSION_DENIED"));
+                            }
+                        },
+                        { enableHighAccuracy: true, maximumAge: 0, timeout: 5000 }
+                    );
+
+                    timeoutTimer = setTimeout(() => {
+                        navigator.geolocation.clearWatch(watchIdLock);
+                        if (bestPos && bestPos.coords.accuracy <= 50) {
+                            AppController.executeAudioTask(`Señal GPS moderada. Margen de error de ${Math.round(bestPos.coords.accuracy)} metros.`);
+                            resolve(bestPos);
+                        } else {
+                            reject(new Error("POOR_ACCURACY"));
+                        }
+                    }, maxRetries * 2000);
+                });
+            },
+            
+            async announceGPSMenu() {
+                if (!navigator.onLine) { AppController.executeAudioTask(I18n.get("spk_gps_offline")); return; }
+                UI.setStatus("Iniciando GPS..."); this.awaitingGPSConfirmation = true;
+                if (navigator.geolocation) { navigator.geolocation.getCurrentPosition(()=>{}, ()=>{}, {enableHighAccuracy: true, timeout: 3000, maximumAge: 0}); } 
+                AppController.executeAudioTask(I18n.get("spk_gps_hardware_warn"), true); 
+            },
+            
+            announceGPSOptions() { this.awaitingGPSConfirmation = false; AppController.executeAudioTask(I18n.get("spk_menu_gps_desc"), true); },
+            
+            async exploreAround() {
+                UI.setStatus("Explorando Zona..."); 
+                AppController.executeAudioTask(I18n.current === 'es' ? "Escaneando lugares e intersecciones en un radio de 80 metros..." : "Scanning surroundings..."); 
+                try {
+                    const pos = await this.getLocation(25, 6); 
+                    const lat = pos.coords.latitude; const lon = pos.coords.longitude; 
+                    
+                    const resAddress = await fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lon}&email=visioracontact@gmail.com`, { headers: { 'Accept-Language': I18n.current } }); 
+                    const dataAddress = await resAddress.json(); const currentStreet = dataAddress.address.road || 'una calle cercana';
+                    
+                    const query = `[out:json];node(around:80,${lat},${lon})["amenity"];node(around:80,${lat},${lon})["shop"];out 5;`;
+                    const resPOI = await fetch(`https://overpass-api.de/api/interpreter?data=${encodeURIComponent(query)}`); 
+                    const dataPOI = await resPOI.json();
+                    
+                    let poiText = "";
+                    if (dataPOI.elements && dataPOI.elements.length > 0) {
+                        const places = dataPOI.elements.map(e => e.tags.name ? e.tags.name : "").filter(x=>x);
+                        const uniquePlaces = [...new Set(places)];
+                        if(uniquePlaces.length > 0) { 
+                            poiText = "Cerca tienes: " + uniquePlaces.join(', ') + "."; 
+                        }
+                    } else { 
+                        poiText = "No detecto comercios ni puntos importantes muy cerca."; 
+                    }
+                    
+                    const msg = `Te encuentras sobre o muy cerca de ${currentStreet}. La precisión actual del GPS es de ${Math.round(pos.coords.accuracy)} metros. ${poiText}`;
+                    UI.setStatus("Zona Explorada"); AppController.executeAudioTask(msg, true);
+                } catch(e) { 
+                    if (e.message === "PERMISSION_DENIED") {
+                        AppController.executeAudioTask("Permiso de ubicación denegado. Por favor, actívalo en los ajustes de tu navegador para usar el GPS.", true);
+                    } else if (e.message === "POOR_ACCURACY") {
+                        AppController.executeAudioTask("Precisión insuficiente para explorar la zona con seguridad. Ubícate a cielo abierto.", true);
+                    } else {
+                        AppController.executeAudioTask(I18n.get("spk_error"), true); 
+                    }
+                }
+            },
+
+            async getGPS() { 
+                return new Promise(async (resolve) => { 
+                    try { 
+                        const pos = await this.getLocation(15, 6); 
+                        const lat = pos.coords.latitude; const lon = pos.coords.longitude; 
+                        const acc = Math.round(pos.coords.accuracy);
+                        
+                        const res = await fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lon}&zoom=18&addressdetails=1&email=visioracontact@gmail.com`, { headers: { 'Accept-Language': I18n.current } }); 
+                        const data = await res.json(); 
+                        
+                        const addr = data.address || {};
+                        const calle = addr.road || addr.pedestrian || 'calle desconocida';
+                        const numero = addr.house_number ? 'número ' + addr.house_number : '';
+                        const edificio = addr.building || addr.amenity || addr.shop ? ` frente a ${addr.building || addr.amenity || addr.shop}, ` : '';
+                        const ciudad = addr.city || addr.town || addr.suburb || '';
+                        
+                        let frase = `Estás exactamente en ${calle} ${numero},${edificio} zona de ${ciudad}. `;
+                        
+                        if (acc <= 10) frase += `El margen de error del satélite es excelente, solo ${acc} metros.`;
+                        else if (acc <= 25) frase += `La precisión actual es buena, de ${acc} metros.`;
+                        else frase += `Atención: La señal GPS es débil, el margen de error es amplio, de ${acc} metros.`;
+                        
+                        resolve(frase);
+                    } catch(e) { 
+                        if (e.message === "PERMISSION_DENIED") resolve("Permiso de ubicación denegado por el navegador.");
+                        else resolve("No se pudo triangular tu ubicación con ultra precisión en este momento. Sal al asfalto e intenta de nuevo."); 
+                    } 
+                }); 
+            }, 
+
+            parseBlindInstruction(step) {
+                if (!step || !step.maneuver) return step.name || "";
+                const type = step.maneuver.type; const modifier = step.maneuver.modifier; const dist = Math.round(step.distance); const name = step.name ? ` hacia ${step.name}` : '';
+                let inst = "";
+                
+                if (type === 'turn') { 
+                    let dir = modifier.includes('left') ? 'izquierda' : (modifier.includes('right') ? 'derecha' : modifier); 
+                    inst = `En la intersección, haz un giro a tu ${dir}${name}. Sigue recto por ${dist} metros.`; 
+                } 
+                else if (type === 'depart') { 
+                    inst = `Inicia tu ruta recto. Tienes ${dist} metros por delante${name}.`; 
+                } 
+                else if (type === 'arrive') { 
+                    inst = `Has llegado a la zona de destino.`; 
+                } 
+                else { 
+                    inst = step.maneuver.instruction + ` (${dist} metros).`; 
+                }
+                
+                return inst;
+            },
+
+            async startInternalNavigation(destino) { 
+                if (this.isCalculatingRoute) return; 
+                this.isCalculatingRoute = true;
+                this.awaitingGPSConfirmation = false;
+                
+                this.currentDest = destino; PowerManager.reset(); 
+                AppController.executeAudioTask(I18n.get("spk_nav_disclaimer"), false); 
+                
+                UI.navigateTo('menu-nav-activa'); document.getElementById('nav-step-text').innerText = I18n.get("ui_nav_calc"); 
+                
+                if ('wakeLock' in navigator) { try { this.wakeLockObj = await navigator.wakeLock.request('screen'); } catch(e){} }
+                BackgroundKeeper.start();
+                
+                return new Promise(async (resolve, reject) => { 
+                    try {
+                        const pos = await this.getLocation(20, 10); 
+                        const lat = pos.coords.latitude; const lon = pos.coords.longitude; 
+                        
+                        let targetLat = null; let targetLon = null; let targetName = destino;
+                        
+                        const categoryTags = { 
+                            'pharmacy': 'nwr["amenity"="pharmacy"]', 
+                            'supermarket': 'nwr["shop"~"supermarket|convenience"]',
+                            'park': 'nwr["leisure"~"park|garden"]', 
+                            'worship': 'nwr["amenity"="place_of_worship"]' 
+                        };
+
+                        if (categoryTags[destino]) {
+                            try {
+                                const query = `[out:json][timeout:4];${categoryTags[destino]}(around:2500,${lat},${lon});out center 5;`;
+                                const poiRes = await fetch(`https://overpass-api.de/api/interpreter?data=${encodeURIComponent(query)}`);
+                                if (poiRes.ok) {
+                                    const poiData = await poiRes.json();
+                                    if (poiData.elements && poiData.elements.length > 0) {
+                                        let minD = 99999;
+                                        for (let el of poiData.elements) {
+                                            let elLat = el.lat || el.center?.lat;
+                                            let elLon = el.lon || el.center?.lon;
+                                            if (!elLat || !elLon) continue;
+
+                                            let dist = GeoUtils.getDistanceInMeters(lat, lon, elLat, elLon);
+                                            if (dist < minD) { 
+                                                minD = dist; targetLat = elLat; targetLon = elLon; 
+                                                targetName = el.tags?.name || (destino === 'park' ? 'el parque' : (destino === 'pharmacy' ? 'la farmacia' : 'el destino')); 
+                                            }
+                                        }
+                                    }
+                                }
+                            } catch (e) {
+                                console.log("Fallo en Overpass, usando motor secundario Nominatim", e);
+                            }
+                        } 
+                        
+                        if (!targetLat) {
+                            const searchTerms = { 'pharmacy': 'farmacia', 'supermarket': 'supermercado', 'park': 'parque', 'worship': 'iglesia' };
+                            const term = searchTerms[destino] || destino;
+                            
+                            const destRes = await fetch(`https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(term)}&format=json&lat=${lat}&lon=${lon}&limit=5&accept-language=${I18n.current}&email=visioracontact@gmail.com`); 
+                            const destData = await destRes.json(); 
+                            if (!destData || destData.length === 0) throw new Error("TOO_FAR"); 
+                            
+                            let bestTarget = null; let minD = 5000; 
+                            for (let d of destData) { let dist = GeoUtils.getDistanceInMeters(lat, lon, parseFloat(d.lat), parseFloat(d.lon)); if (dist < minD) { minD = dist; bestTarget = d; } }
+                            if (!bestTarget) throw new Error("TOO_FAR");
+                            
+                            targetLat = parseFloat(bestTarget.lat); targetLon = parseFloat(bestTarget.lon);
+                            targetName = bestTarget.name || term;
+                        }
+
+                        const routeRes = await fetch(`https://router.project-osrm.org/route/v1/foot/${lon},${lat};${targetLon},${targetLat}?steps=true&language=${I18n.current}`); 
+                        const routeData = await routeRes.json(); 
+                        
+                        if (routeData.code !== 'Ok' || !routeData.routes || routeData.routes.length === 0) { 
+                            let distLineal = Math.round(GeoUtils.getDistanceInMeters(lat, lon, targetLat, targetLon));
+                            this.currentStepsData = [{
+                                maneuver: { instruction: `No hay caminos peatonales mapeados. Dirígete hacia ${targetName} con precaución`, type: 'depart', location: [targetLon, targetLat] },
+                                distance: distLineal,
+                                name: targetName
+                            }];
+                            this.currentSteps = [`No hay calles peatonales registradas para ir a pie, pero ${targetName} está a ${distLineal} metros. Avanza con precaución.`];
+                        } else {
+                            this.currentStepsData = routeData.routes[0].legs[0].steps; 
+                            this.currentSteps = this.currentStepsData.map(s => this.parseBlindInstruction(s)); 
+                        }
+                        
+                        this.currentStepIndex = 0; 
+                        this.hasTriggeredLastMeter = false;
+                        
+                        AppController.executeAudioTask(this.currentSteps[0], true); 
+                        document.getElementById('nav-step-text').innerText = this.currentSteps[0]; 
+                        this.startTracking(); 
+                        
+                        this.isCalculatingRoute = false; 
+                        resolve(); 
+
+                    } catch(err) {
+                        this.isCalculatingRoute = false; 
+                        BackgroundKeeper.stop();
+                        
+                        let errMsg = I18n.get("spk_error");
+                        if (err.message === "PERMISSION_DENIED") errMsg = "Permiso de ubicación denegado. Por favor, actívalo en los ajustes de tu navegador.";
+                        else if (err.message === "POOR_ACCURACY") errMsg = "Alerta: No logré obtener una precisión menor a 20 metros. Activa los datos y el wifi para triangular mejor.";
+                        else if (err.message === "TOO_FAR") errMsg = "No encontré ese destino en un radio cercano para ir a pie. Intenta otra opción.";
+                        else if (err.code) errMsg = "Asegúrate de permitir la ubicación de alta precisión en tu navegador."; 
+                        else errMsg = "Error al trazar el mapa. Verifica tu conexión.";
+
+                        this.cancelRoute(false, false); 
+                        AppController.executeAudioTask(errMsg, true); 
+                        reject(err);
+                    }
+                }); 
+            }, 
+
+            startTracking() {
+                if (this.watchId) navigator.geolocation.clearWatch(this.watchId); 
+                if (this.hapticRadarTimer) { clearInterval(this.hapticRadarTimer); this.hapticRadarTimer = null; }
+                let lastDistanceToManeuver = null;
+                this.lastValidPos = null;
+                this.consecutiveJumps = 0;
+                
+                if (this.offlineInterval) clearInterval(this.offlineInterval);
+                this.offlineInterval = setInterval(() => { if (!navigator.onLine && this.currentStepsData.length > 0) { AppController.executeAudioTask(I18n.get("spk_gps_offline"), false); this.cancelRoute(false); } }, 5000);
+                
+                if (!navigator.geolocation) return;
+                
+                this.watchId = navigator.geolocation.watchPosition((pos) => {
+                    if (this.currentStepsData.length === 0 || this.currentStepIndex >= this.currentStepsData.length) return;
+                    
+                    const curLat = pos.coords.latitude; const curLon = pos.coords.longitude;
+                    const accuracy = pos.coords.accuracy;
+
+                    // FIX CAPA 3: Filtro Anti-Saltos GPS (Spike Filter)
+                    if (this.lastValidPos) {
+                        const distFromLast = GeoUtils.getDistanceInMeters(this.lastValidPos.lat, this.lastValidPos.lon, curLat, curLon);
+                        const timeDiff = (pos.timestamp - this.lastValidPos.ts) / 1000;
+                        // Si el salto implica moverse a más de 15 m/s (~54 km/h), asumimos que el satélite rebotó en un edificio
+                        if (timeDiff > 0 && (distFromLast / timeDiff) > 15 && accuracy > 15) { 
+                            this.consecutiveJumps++;
+                            if (this.consecutiveJumps < 4) return; // Ignoramos el error temporal
+                        }
+                    }
+                    this.consecutiveJumps = 0;
+                    this.lastValidPos = { lat: curLat, lon: curLon, ts: pos.timestamp };
+
+                    const nextManeuver = this.currentStepsData[this.currentStepIndex].maneuver.location; 
+                    const distToNext = GeoUtils.getDistanceInMeters(curLat, curLon, nextManeuver[1], nextManeuver[0]);
+                    
+                    // FIX CAPA 3: Cálculo de orientación basado en reloj si el usuario va caminando (> 0.5 m/s)
+                    let orientacionClock = "";
+                    if (pos.coords.heading !== null && !isNaN(pos.coords.heading) && pos.coords.speed > 0.5) {
+                        const bearing = GeoUtils.getBearing(curLat, curLon, nextManeuver[1], nextManeuver[0]);
+                        orientacionClock = ", " + GeoUtils.getClockDirection(pos.coords.heading, bearing);
+                    }
+                    
+                    if (this.currentStepIndex === this.currentStepsData.length - 1) {
+                        if (distToNext <= 30 && !this.hapticRadarTimer) {
+                            this.hapticRadarTimer = setInterval(() => {
+                                try { if(navigator.vibrate) navigator.vibrate(40); } catch(e){}
+                            }, distToNext > 15 ? 2000 : (distToNext > 5 ? 1000 : 500)); 
+                        }
+                        
+                        if (distToNext <= 30 && distToNext > 12 && !this.hasTriggeredLastMeter) {
+                            // Se añade la orientación del reloj (e.g. "a tus 2 en punto")
+                            AppController.executeAudioTask(`Zona de destino. Estás a ${Math.round(distToNext)} metros${orientacionClock}. Sigue el latido del teléfono...`, false);
+                            this.hasTriggeredLastMeter = "approaching";
+                        }
+                        else if (distToNext <= 12 && this.hasTriggeredLastMeter === "approaching") {
+                            if (this.hapticRadarTimer) { clearInterval(this.hapticRadarTimer); this.hapticRadarTimer = null; }
+                            this.hasTriggeredLastMeter = true;
+                            AppController.executeAudioTask("Has llegado a la puerta. Iniciando cámara de ultra precisión. Mantén tu cabeza recta...", false);
+                            setTimeout(() => this.triggerLastMeter(), 4500);
+                            return;
+                        }
+                    }
+
+                    if (distToNext < 10 && this.currentStepIndex < this.currentStepsData.length - 1) { 
+                        this.readStep(1, true); 
+                        lastDistanceToManeuver = null; 
+                        return; 
+                    }
+                    
+                    // Incrementamos la tolerancia al desvío antes de recalcular (de 20m a 35m)
+                    if (lastDistanceToManeuver !== null && distToNext > lastDistanceToManeuver + 20 && distToNext > 35) { 
+                        navigator.geolocation.clearWatch(this.watchId); 
+                        AppController.executeAudioTask(I18n.get("spk_nav_off_route"), false); 
+                        setTimeout(() => { this.startInternalNavigation(this.currentDest); }, 5500); 
+                        return; 
+                    }
+                    lastDistanceToManeuver = distToNext;
+
+                }, (err) => { }, { enableHighAccuracy: true, maximumAge: 0, timeout: 5000 });
+            },
+
+            readStep(offset, isAuto = false) { 
+                if (this.currentSteps.length === 0) return; this.currentStepIndex += offset; 
+                
+                if (this.currentStepIndex < 0) { 
+                    this.currentStepIndex = 0; AppController.executeAudioTask(this.currentSteps[0], true); 
+                } else if (this.currentStepIndex >= this.currentSteps.length) { 
+                    this.currentStepIndex = this.currentSteps.length - 1; 
+                } else { 
+                    const prefijo = (offset === 1 && !isAuto ? I18n.get("spk_next") + ". " : (offset === -1 ? I18n.get("spk_prev") + ". " : "")); 
+                    AppController.executeAudioTask(prefijo + this.currentSteps[this.currentStepIndex], true); 
+                } 
+                document.getElementById('nav-step-text').innerText = this.currentSteps[this.currentStepIndex] || "Destino alcanzado"; 
+            }, 
+
+            async triggerLastMeter() {
+            UI.toggleScanner(true); 
+            AppController.executeAudioTask("Buscando la entrada exacta, escalones o manijas..."); 
+            try { 
+                const p = I18n.get("p_lang") + " " + I18n.get("p_last_meter"); 
+                const result = await VisionEngine.analyze(p, false); 
+                UI.toggleScanner(false); 
+                AppController.executeAudioTask(result, true); 
+            } 
+            catch(e) { UI.toggleScanner(false); AppController.executeAudioTask(I18n.get("spk_error"), true); }
+        },
+
+        cancelRoute(redirectToMenu = true, playAudio = true) { 
+            this.isCalculatingRoute = false; 
+            if (this.watchId) { navigator.geolocation.clearWatch(this.watchId); this.watchId = null; } 
+            if (this.hapticRadarTimer) { clearInterval(this.hapticRadarTimer); this.hapticRadarTimer = null; }
+            if (this.offlineInterval) { clearInterval(this.offlineInterval); this.offlineInterval = null; } 
+            if (this.wakeLockObj) { this.wakeLockObj.release().then(()=> this.wakeLockObj = null).catch(()=>{}); }
+            BackgroundKeeper.stop(); 
+            
+            this.currentSteps = []; this.currentStepsData = []; this.currentStepIndex = 0; this.currentDest = ""; this.awaitingGPSConfirmation = false; PowerManager.reset(); 
+            this.hasTriggeredLastMeter = false;
+            this.lastValidPos = null;
+            this.consecutiveJumps = 0;
+            
+            if (redirectToMenu) { 
+                if (playAudio) AppController.executeAudioTask(I18n.get("spk_route_cancel"), false); 
+                UI.navigateTo('menu-principal'); 
+            }
+        } 
+    };
+
+    const ChatManager = { 
+            activeMode: null, gameLevel: 1, questionsAsked: 0, history: [], 
+            
+            async processQuery(query, resetContext = false, modeToStart = null) { 
+                if (resetContext) { 
+                    this.history = []; 
+                    this.activeMode = modeToStart; 
+                    if (this.activeMode) { this.gameLevel = 1; this.questionsAsked = 0; } 
+                } 
+                
+                const exactStamp = DateTimeUtils.getLiveStamp(); 
+                const seed = Math.floor(Math.random() * 99999);
+                let internalQuery = query; 
+                
+                const needsSearch = internalQuery.toLowerCase().includes('noticias') || internalQuery.toLowerCase().includes('news') || internalQuery.toLowerCase().includes('notícia') || internalQuery.includes('أخبار');
+                const isTimeRequest = internalQuery.toLowerCase().includes('hora') || internalQuery.toLowerCase().includes('tiempo') || internalQuery.toLowerCase().includes('tempo') || internalQuery.toLowerCase().includes('time') || internalQuery.includes('الساعة');
+
+                let systemPrompt = `${I18n.get("p_lang")} [REGLA DE SEGURIDAD: La fecha y hora actual es EXACTAMENTE ${exactStamp}]. `; 
+                
+                if (needsSearch) {
+                    systemPrompt += `El usuario quiere noticias. PRIMERO di la fecha y hora actual para su seguridad. Luego resume 3 noticias.`;
+                } else if (isTimeRequest) {
+                    systemPrompt += `Responde únicamente con la hora y fecha actual de forma clara y pausada.`;
+                } else if (this.activeMode === 'memory') { 
+                    if (!resetContext) { this.questionsAsked++; if (this.questionsAsked >= 3) { this.gameLevel++; this.questionsAsked = 0; internalQuery += ` [EL USUARIO SUBIÓ AL NIVEL ${this.gameLevel}]`; } } 
+                    systemPrompt += `ERES UN JUEGO DE MEMORIA Y CÁLCULO. REGLA DE ORO: SÉ EXTREMADAMENTE BREVE. CERO CHARLA INNECESARIA. Nivel actual: ${this.gameLevel}. Cada 3 preguntas sube de nivel. Mecánica: Alterna entre preguntar operaciones matemáticas y dar listas de objetos para memorizar. Evalúa SIEMPRE la respuesta anterior y lanza el siguiente reto.`; 
+                } else if (this.activeMode === 'language') {
+                    if (!resetContext) { this.questionsAsked++; if (this.questionsAsked >= 7) { this.activeMode = null; internalQuery += ` [FIN DEL CURSO]`; } } 
+                    systemPrompt += `ERES UN PROFESOR DE IDIOMAS. REGLA DE ORO: CONCISO Y DIRECTO. Turno actual: ${this.questionsAsked}/7. Si es tu primer mensaje, DEBES presentarte: "Soy tu profesor de idiomas, ¿qué idioma te gustaría aprender?". Enseña UNA sola palabra/frase básica por turno, di el significado y pide que la repitan.`;
+                } else if (this.activeMode === 'religion') {
+                    if (I18n.current === 'ar') {
+                        systemPrompt += `ERES UN GUÍA DEL CORÁN. Regla 1: En tu primer mensaje, PREGUNTA EXACTAMENTE ESTO: "¿Deseas escuchar una aleya al azar, o buscar una palabra y tema específico?". Responde con reverencia.`;
+                    } else {
+                        systemPrompt += `ERES UN GUÍA BÍBLICO. Regla 1: En tu primer mensaje, PREGUNTA EXACTAMENTE ESTO: "¿Deseas escuchar un versículo al azar, o buscar una palabra y tema específico?". Regla 2: NUNCA uses dos puntos (:) para la referencia, usa la palabra 'guion' (Ej: Juan 3 guion 16).`;
+                    }
+                } else {
+                    systemPrompt += `Random Seed: ${seed}. RULE: NEVER repeat previous stories, jokes. Be creative and concise.`; 
+                }
+                
+                if (this.history.length > 0 && this.history[this.history.length - 1].role === "user") this.history.pop();
+                this.history.push({ role: "user", parts: [{ text: internalQuery }] }); 
+                if (this.history.length > 16) { this.history = this.history.slice(-16); if (this.history[0].role === 'model') this.history.shift(); } 
+                
+                try { 
+                    const response = await LLMEngine.generateTextWithHistory(systemPrompt, this.history, needsSearch); 
+                    let finalResponse = response; 
+                    if (this.activeMode === 'religion' && I18n.current !== 'ar') {
+                        finalResponse = finalResponse.replace(/(\d+)\s*:\s*(\d+)/g, '$1 guion $2');
+                    }
+                    this.history.push({ role: "model", parts: [{ text: finalResponse }] }); 
+                    return finalResponse; 
+                } catch (e) { 
+                    this.history.pop(); 
+                    throw e; 
+                }
+            } 
+        };
+
+        // FIX CAPA 2: Mejor limpieza de cámara en forceStopAll para prevenir sobrecalentamiento
+        const AppController = {
+            _hasInitialized: false,  
+            isProcessingCommand: false,
+            isBusy: false, 
+            currentMenu: 'menu-principal', 
+
+            init() { if (this._hasInitialized) return; this._hasInitialized = true; StorageManager.load(); AudioEngine.init(); PowerManager.init(); PermissionAgent.start(); },
+            completeInit(vidStream = null) { 
+                VisionEngine.init(vidStream); SpeechEngine.init(); this.bindEvents(); this.setupHardwareInterrupts(); 
+                document.getElementById('menu-principal').classList.remove('hidden'); 
+                setTimeout(() => { this.executeAudioTask(I18n.get("spk_welcome"), true); }, 800); 
+            },
+            
+            setupHardwareInterrupts() { 
+                if ('mediaSession' in navigator) { 
+                    navigator.mediaSession.playbackState = "playing";
+                    navigator.mediaSession.setActionHandler('play', () => this.handleHardwareTap()); 
+                    navigator.mediaSession.setActionHandler('pause', () => this.handleHardwareTap()); 
+                    navigator.mediaSession.setActionHandler('nexttrack', () => this.handleHardwareTap());
+                    navigator.mediaSession.setActionHandler('previoustrack', () => { this.forceStopAll(); AudioEngine.playMicStop(); this.executeAudioTask(I18n.get("spk_stopped")); });
+                } 
+            },
+            
+            handleHardwareTap() { 
+                PowerManager.reset(); 
+                if (LiveAssistEngine.isActive) { LiveAssistEngine.stop(); return; } 
+                if (AudioEngine.speaking || RadioEngine.isPlaying) { this.forceStopAll(); AudioEngine.playMicStop(); this.executeAudioTask(I18n.get("spk_stopped")); } 
+                else { SpeechEngine.startListening(true); } 
+            },
+            
+            handleMicClick() { 
+                PowerManager.reset(); 
+                if (LiveAssistEngine.isActive) { LiveAssistEngine.stop(); return; } 
+                if (AudioEngine.speaking) { 
+                    this.forceStopAll(); 
+                } else { 
+                    if (SpeechEngine.systemShouldListen) {
+                        this.forceStopAll();
+                        AudioEngine.playMicStop();
+                        this.executeAudioTask(I18n.get("spk_stopped"));
+                    } else {
+                        SpeechEngine.startListening(true);
+                    }
+                } 
+            },
+            
+            bindEvents() { 
+                EventBus.on('ui:navigated', (screenId) => { 
+                    this.currentMenu = screenId;
+                    this.forceStopAll(false); 
+                    if (this._hasInitialized) {
+                        setTimeout(() => {
+                            if (screenId === 'menu-principal') this.executeAudioTask(I18n.get("spk_menu_main"), false);
+                            else if (screenId === 'menu-radio') this.executeAudioTask(I18n.get("spk_menu_radio"), false);
+                            else if (screenId === 'menu-ocio') this.executeAudioTask(I18n.get("spk_menu_ocio"), false);
+                            else if (screenId === 'menu-llamar') this.executeAudioTask(I18n.get("spk_menu_llamar"), false);
+                            else if (screenId === 'menu-config') this.executeAudioTask(I18n.get("spk_menu_config"), false);
+                            else if (screenId === 'menu-gps') {
+                                if (!LocationEngine.awaitingGPSConfirmation) this.executeAudioTask(I18n.get("spk_menu_gps_desc"), false);
+                            }
+                        }, 100);
+                    }
+                }); 
+                
+                EventBus.on('speech:start', () => { 
+                    if (RadioEngine.isPlaying) RadioEngine.stop(); 
+                    UI.toggleMicVisual(true); 
+                }); 
+                
+                EventBus.on('speech:end', () => { 
+                    UI.toggleMicVisual(false); 
+                }); 
+                
+                EventBus.on('speech:result', (transcript) => { this.processCommand(transcript); }); 
+                
+                EventBus.on('audio:start', () => { 
+                    if (RadioEngine.isPlaying) RadioEngine.stop(); 
+                    SpeechEngine.stopListening(); 
+                }); 
+                
+                EventBus.on('audio:end', () => { 
+                    if (!RadioEngine.isPlaying) {
+                        SpeechEngine.startListening(false);
+                    }
+                }); 
+            },
+
+            async executeAudioTask(textToSpeak, beepAfter = false, voiceOverride = null) { await AudioEngine.speak(textToSpeak, voiceOverride); },
+            
+            forceStopAll(stopAudio = true) { 
+                this.isProcessingCommand = false; 
+                this.isBusy = false; 
+                UI.setBusy(false);
+                SpeechEngine.stopListening(); 
+                if(stopAudio) AudioEngine.stop(); 
+                RadioEngine.stop(); 
+                if(LiveAssistEngine.isActive) LiveAssistEngine.stop(); 
+                ChatManager.activeMode = null; 
+                document.body.classList.remove('sos-active', 'danger-active', 'call-active');
+                UI.toggleScanner(false);
+                // FIX CAPA 2: Si no estamos usando una función que dependa de cámara visual constante, liberamos memoria
+                if(this.currentMenu !== 'menu-principal' && this.currentMenu !== 'menu-gps' && this.currentMenu !== 'menu-nav-activa'){
+                     // VisionEngine.killPhoneCamera(); // Opcional: Puede descomentarse si se desea apagar cámara en menú radio
+                }
+            },
+            
+            toggleVoice() { this.executeAudioTask(I18n.get("spk_voice_locked"), true); },
+            exitApp() { this.forceStopAll(); if (window.currentGlobalStream) { window.currentGlobalStream.getTracks().forEach(t => t.stop()); window.currentGlobalStream = null; } VisionEngine._isInitializing = false; this._hasInitialized = false; location.reload(); },
+            
+            executeAction(actionType, extraData = null) {
+                if (this.isBusy && actionType !== 'handle_camera_crash') {
+                    return; 
+                }
+
+                if (actionType === 'handle_camera_crash') {
+                    if (LiveAssistEngine.isActive) LiveAssistEngine.stop();
+                    UI.toggleScanner(false);
+                    if (StorageManager.glasses.type === 'wifi' || StorageManager.glasses.type === 'usb') {
+                        StorageManager.glasses.type = 'phone';
+                        document.getElementById('cfg-glasses-type').value = 'phone';
+                        StorageManager.saveConfig();
+                        VisionEngine.init();
+                        this.executeAudioTask("Gafas externas desconectadas o no responden. Sistema regresó automáticamente a la cámara del celular por seguridad.", true);
+                    } else {
+                        this.executeAudioTask(I18n.get("spk_no_cam"), true);
+                    }
+                    return;
+                }
+
+                if(actionType !== 'chat_general' && actionType !== 'nav_step') {
+                    this.forceStopAll();
+                } else {
+                    SpeechEngine.stopListening();
+                }
+
+                this.isBusy = true; 
+                UI.setBusy(true);
+
+                this.processActionLogic(actionType, extraData).finally(() => {
+                    this.isBusy = false; 
+                    UI.setBusy(false);
+                });
+            },
+
+            async processActionLogic(actionType, extraData) {
+                try {
+                    if (actionType === 'enter_gps_menu') { UI.navigateTo('menu-gps'); await LocationEngine.announceGPSMenu(); }
+                    else if (actionType === 'gps_live_assist') { await LiveAssistEngine.start(); }
+                    else if (actionType === 'gps_explore_zone') { await LocationEngine.exploreAround(); }
+                    else if (actionType === 'gps_last_meter') { await LocationEngine.triggerLastMeter(); }
+                    else if (actionType === 'gps_location') { 
+                        this.executeAudioTask(I18n.get("spk_locating")); 
+                        const loc = await LocationEngine.getGPS(); 
+                        this.executeAudioTask(loc, true); 
+                    }
+                    else if (actionType === 'gps_guide') { await LocationEngine.startInternalNavigation(extraData); }
+                    else if (actionType === 'nav_step') { LocationEngine.readStep(extraData); }
+                    
+                    else if (['explorar', 'leer'].includes(actionType)) { 
+                        UI.toggleScanner(true); 
+                        const isExplore = actionType === 'explorar';
+                        
+                        await this.executeAudioTask(isExplore ? I18n.get("spk_analyzing") : "Enfocando documento en alta resolución. Mantén la cámara firme frente a la página..."); 
+                        
+                        if (!isExplore) {
+                            await new Promise(r => setTimeout(r, 2500));
+                            AudioEngine.playTone(880, null, 0.1, 'sine');
+                            setTimeout(() => AudioEngine.playTone(880, null, 0.1, 'sine'), 150);
+                        }
+                        
+                        const p = isExplore ? I18n.get("p_lang") + " " + I18n.get("p_explore") : I18n.get("p_lang") + " " + I18n.get("p_read"); 
+                        
+                        const result = await VisionEngine.analyze(p, isExplore); 
+                        
+                        UI.toggleScanner(false); 
+                        if (actionType === 'explorar' && (result.toUpperCase().includes('ALERTA DE PELIGRO') || result.toUpperCase().includes('DANGER ALERT') || result.includes('تنبيه خطر'))) { document.body.classList.add('danger-active'); setTimeout(() => document.body.classList.remove('danger-active'), 4000); }
+                        
+                        this.executeAudioTask(result, true); 
+                    }
+                    else if (actionType === 'dinero') { 
+                        UI.toggleScanner(true); 
+                        this.executeAudioTask(I18n.get("spk_money")); 
+                        
+                        await new Promise(r => setTimeout(r, 1500)); 
+                        
+                        const result = await VisionEngine.analyze(I18n.get("p_lang") + " " + I18n.get("p_money"), false); 
+                        UI.toggleScanner(false); 
+                        this.executeAudioTask(result, true); 
+                    } 
+                    else if (actionType === 'chat_quick') { 
+                        UI.setStatus(I18n.get("spk_thinking")); 
+                        this.executeAudioTask(I18n.get("spk_thinking")); 
+                        const res = await ChatManager.processQuery(I18n.get(extraData), true); 
+                        UI.setStatus(I18n.get("ui_status_ready")); 
+                        this.executeAudioTask(res, true); 
+                    }
+                    else if (actionType === 'chat_memory') { 
+                        UI.setStatus(I18n.get("spk_thinking")); 
+                        this.executeAudioTask(I18n.get("p_game_start"), false); 
+                        const res = await ChatManager.processQuery("Empecemos el juego nivel 1", true, 'memory'); 
+                        UI.setStatus(I18n.get("ui_status_ready")); 
+                        this.executeAudioTask(res, true); 
+                    }
+                    else if (actionType === 'chat_language') { 
+                        UI.setStatus(I18n.get("spk_thinking")); 
+                        this.executeAudioTask(I18n.get("p_lang_start"), false); 
+                        const res = await ChatManager.processQuery("Inicia la clase presentándote con tu frase inicial exacta.", true, 'language'); 
+                        UI.setStatus(I18n.get("ui_status_ready")); 
+                        this.executeAudioTask(res, true); 
+                    }
+                    else if (actionType === 'chat_religion') { 
+                        UI.setStatus(I18n.get("spk_thinking")); 
+                        const isAr = I18n.current === 'ar';
+                        const promptInit = isAr ? 
+                            "Inicia saludando con paz como guía del Corán y pregunta بالضبط si quiere una aleya al azar o un tema." : 
+                            "Inicia saludando como guía bíblico y preguntando exactamente si quiere versículo al azar o palabra específica.";
+                        const res = await ChatManager.processQuery(promptInit, true, 'religion'); 
+                        UI.setStatus(I18n.get("ui_status_ready")); 
+                        this.executeAudioTask(res, true); 
+                    }
+                    else if (actionType === 'chat_free') { 
+                        UI.setStatus(I18n.get("spk_thinking")); 
+                        const res = await ChatManager.processQuery("Hola, soy tu asistente conversacional. ¿De qué te gustaría hablar hoy?", true, 'free_chat'); 
+                        UI.setStatus(I18n.get("ui_status_ready")); 
+                        this.executeAudioTask(res, true); 
+                    }
+                    else if (actionType === 'chat_general') { 
+                        UI.setStatus(I18n.get("spk_thinking")); 
+                        const res = await ChatManager.processQuery(extraData, false); 
+                        UI.setStatus(I18n.get("ui_status_ready")); 
+                        this.executeAudioTask(res, true); 
+                    }
+                } catch(e) { 
+                    UI.toggleScanner(false); UI.setStatus(I18n.get("ui_status_ready"));
+                    if (e.message === "NO_INTERNET") {
+                        this.executeAudioTask(I18n.current === 'es' ? "Alerta de red. No hay conexión a internet para procesar la Inteligencia Artificial." : "Network error. No internet connection.", true);
+                    } else if (e.message === "CAMERA_NOT_READY" || e.message === "WIFI_CAM_ERROR") {
+                        this.executeAction('handle_camera_crash', e);
+                    } else {
+                        if(actionType !== 'gps_guide') this.executeAudioTask(I18n.get("spk_error"), true); 
+                    }
+                }
+            },
+
+            processCommand(cmd) {
+                if (this.isProcessingCommand || this.isBusy) return; 
+                this.isProcessingCommand = true;
+                setTimeout(() => { this.isProcessingCommand = false; }, 1500); 
+                
+                const contains = (arr) => arr.some(kw => cmd.includes(kw));
+
+                if (contains(['ayuda', 'qué puedo hacer', 'opciones', 'qué digo', 'ayudame', 'ajuda', 'o que posso fazer', 'opções', 'me ajude', 'help', 'what can i do', 'options', 'مساعدة', 'ماذا أفعل', 'خيارات'])) {
+                    this.forceStopAll(true);
+                    const menu = this.currentMenu || 'menu-principal';
+                    if (menu === 'menu-principal') this.executeAudioTask(I18n.get("spk_menu_main"));
+                    else if (menu === 'menu-radio') this.executeAudioTask(I18n.get("spk_menu_radio"));
+                    else if (menu === 'menu-ocio') this.executeAudioTask(I18n.get("spk_menu_ocio"));
+                    else if (menu === 'menu-llamar') this.executeAudioTask(I18n.get("spk_menu_llamar"));
+                    else if (menu === 'menu-gps' || menu === 'menu-nav-activa') this.executeAudioTask(I18n.get("spk_menu_gps_desc"));
+                    else this.executeAudioTask(I18n.get("spk_menu_main"));
+                    return;
+                }
+                
+                if (contains(['qué hora es', 'dame la hora', 'fecha', 'qué día es', 'qué hora tienes', 'que horas são', 'me dê a hora', 'data', 'que dia é hoje', 'que horas tens', 'what time is it', 'time', 'date', 'كم الساعة', 'الوقت', 'تاريخ'])) {
+                    this.forceStopAll(true);
+                    const saludoHora = (I18n.current === 'es' || I18n.current === 'pt') ? 
+                        `Son las ${DateTimeUtils.getShortTime()} del ${DateTimeUtils.getLiveStamp()}` : 
+                        `It is ${DateTimeUtils.getShortTime()} on ${DateTimeUtils.getLiveStamp()}`;
+                    this.executeAudioTask(saludoHora, true);
+                    return;
+                }
+
+                if (LiveAssistEngine.isActive) {
+                    if (contains(['colgar', 'detener', 'parar', 'stop', 'hang up', 'salir', 'cancelar', 'volver', 'desligar', 'إلغاء', 'إيقاف'])) { LiveAssistEngine.stop(); return; } 
+                    else { LiveAssistEngine.customPrompt = cmd; LiveAssistEngine.loop(); return; }
+                }
+                
+                if (contains(['parar', 'silencio', 'stop', 'quiet', 'quieto', 'إسكات', 'توقف'])) { this.forceStopAll(); this.executeAudioTask(I18n.get("spk_stopped")); return; }
+                
+                if (contains(['apagar sistema', 'cerrar sistema', 'apagar dispositivo', 'cerrar aplicación', 'desligar sistema', 'fechar sistema', 'desligar dispositivo', 'fechar aplicativo', 'turn off', 'shutdown', 'close app', 'إغلاق النظام', 'إطفاء'])) { this.exitApp(); return; }
+                
+                if (contains(['inicio', 'volver', 'menú principal', 'salir', 'cancelar', 'atrás', 'início', 'go back', 'main menu', 'cancel', 'العودة', 'القائمة الرئيسية', 'إلغاء']) && !LocationEngine.awaitingGPSConfirmation) { 
+                    this.forceStopAll();
+                    if (LocationEngine.currentSteps.length > 0) LocationEngine.cancelRoute(true); 
+                    else { UI.navigateTo('menu-principal'); } 
+                    return; 
+                }
+                
+                if (contains(['emergencia', 'ayuda rápida', 'socorro', 'emergency', 'help me', 'emergência', 'طوارئ', 'أنقذني'])) { this.triggerSOS(); return; }
+
+                const isGpsActive = !document.getElementById('menu-gps').classList.contains('hidden') || !document.getElementById('menu-nav-activa').classList.contains('hidden');
+                if (LocationEngine.awaitingGPSConfirmation) {
+                    if (contains(['sí', 'si', 'claro', 'continuar', 'ok', 'yes', 'sim', 'نعم', 'موافق'])) { LocationEngine.announceGPSOptions(); } 
+                    else if (contains(['no', 'cancelar', 'salir', 'volver', 'nao', 'não', 'لا', 'إلغاء'])) { LocationEngine.awaitingGPSConfirmation = false; UI.navigateTo('menu-principal'); this.executeAudioTask(I18n.get("spk_route_cancel"), true); } 
+                    else { this.executeAudioTask(I18n.get("spk_gps_confirm_error"), true); }
+                    return;
+                }
+                if (isGpsActive || contains(['gps', 'navegación', 'ubicación', 'dónde estoy', 'localización', 'navegação', 'localização', 'onde estou', 'navigation', 'location', 'where am i', 'ملاحة', 'موقعي', 'أين أنا'])) {
+                    if (contains(['gps', 'navegación', 'navegação', 'navigation', 'ملاحة'])) { if(!isGpsActive) this.executeAction('enter_gps_menu'); }
+                    else if (contains(['cancelar', 'detener', 'cancelar', 'stop', 'cancel', 'إيقاف', 'إلغاء'])) { if (LocationEngine.currentSteps.length > 0) LocationEngine.cancelRoute(true); else UI.navigateTo('menu-principal'); }
+                    else if (LocationEngine.currentSteps.length > 0 && contains(['siguiente', 'avanzar', 'seguinte', 'próximo', 'next', 'forward', 'التالي', 'تقدم'])) this.executeAction('nav_step', 1); 
+                    else if (LocationEngine.currentSteps.length > 0 && contains(['anterior', 'atrás', 'previous', 'back', 'السابق', 'خلف'])) this.executeAction('nav_step', -1); 
+                    else if (LocationEngine.currentSteps.length > 0 && contains(['repetir', 'qué dijiste', 'repita', 'o que você disse', 'repeat', 'what did you say', 'إعادة', 'ماذا قلت'])) this.executeAction('nav_step', 0); 
+                    else if (contains(['asistente en vivo', 'videollamada', 'guía en vivo', 'assistente ao vivo', 'chamada de vídeo', 'guia ao vivo', 'live assist', 'video call', 'مساعد مباشر', 'مكالمة فيديو'])) this.executeAction('gps_live_assist'); 
+                    else if (contains(['explorar entorno', 'explorar zona', 'alrededor', 'explorar ao redor', 'explore area', 'surroundings', 'استكشاف المنطقة', 'حولي'])) this.executeAction('gps_explore_zone'); 
+                    else if (contains(['último metro', 'buscar puerta', 'entrada', 'porta', 'last meter', 'find door', 'entrance', 'المتر الأخير', 'الباب', 'مدخل'])) this.executeAction('gps_last_meter'); 
+                    else if (contains(['dónde estoy', 'ubicación', 'dónde me encuentro', 'exactamente', 'onde me encontro', 'exatamente', 'where am i', 'exactly', 'أين أنا', 'موقعي'])) this.executeAction('gps_location'); 
+                    else if (contains(['supermercado', 'mercado', 'tienda', 'loja', 'supermarket', 'store', 'market', 'سوبر ماركت', 'متجر'])) this.executeAction('gps_guide', 'supermarket'); 
+                    else if (contains(['farmacia', 'medicinas', 'farmácia', 'remédios', 'medicamentos', 'pharmacy', 'medicine', 'صيدلية', 'دواء'])) this.executeAction('gps_guide', 'pharmacy'); 
+                    else if (contains(['parque', 'plaza', 'praça', 'park', 'square', 'حديقة', 'ساحة'])) this.executeAction('gps_guide', 'park'); 
+                    else if (contains(['iglesia', 'templo', 'mezquita', 'igreja', 'church', 'temple', 'mosque', 'كنيسة', 'مسجد', 'معبد'])) this.executeAction('gps_guide', 'worship'); 
+                    else { if (isGpsActive) this.executeAudioTask(I18n.get("spk_gps_strict_error"), true); else this.executeAction('enter_gps_menu'); }
+                    return; 
+                }
+
+                const isRadioActive = !document.getElementById('menu-radio').classList.contains('hidden');
+                const isOcioActive = !document.getElementById('menu-ocio').classList.contains('hidden');
+
+                if (isRadioActive || contains(['radio', 'rádio'])) {
+                    if (contains(['radio', 'rádio']) && !isRadioActive) { UI.navigateTo('menu-radio'); return; }
+                    if (contains(['noticias', 'información', 'notícia', 'notícias', 'news', 'information', 'أخبار', 'معلومات']) && !isOcioActive) { RadioEngine.playGlobal('news'); return; }
+                    if (contains(['pop', 'música pop', 'actual', 'atual', 'pop music', 'موسيقى'])) { RadioEngine.playGlobal('pop'); return; }
+                    if (contains(['relajante', 'clásica', 'tranquila', 'clássica', 'relaxing', 'classical', 'هادئ', 'كلاسيكي'])) { RadioEngine.playGlobal('relax'); return; }
+                    if (contains(['animada', 'fiesta', 'bailar', 'festa', 'dançar', 'upbeat', 'party', 'dance', 'حماسي', 'حفلة'])) { RadioEngine.playGlobal('upbeat'); return; }
+                    if (contains(['apagar', 'detener', 'desligar', 'stop', 'turn off', 'إيقاف', 'إطفاء'])) { RadioEngine.stop(); this.executeAudioTask(I18n.get("spk_stopped"), true); return; }
+                }
+
+                if (contains(['llamar', 'ligar', 'chamar', 'call', 'dial', 'اتصال', 'اتصل'])) {
+                    const c1 = StorageManager.contacts.c1; const c2 = StorageManager.contacts.c2; const c3 = StorageManager.contacts.c3;
+                    if (contains([c1.nombre.toLowerCase()]) && c1.tel) { this.callSpecificContact(c1.tel, c1.nombre); return; }
+                    if (contains([c2.nombre.toLowerCase()]) && c2.tel) { this.callSpecificContact(c2.tel, c2.nombre); return; }
+                    if (contains([c3.nombre.toLowerCase()]) && c3.tel) { this.callSpecificContact(c3.tel, c3.nombre); return; }
+                    if (contains(['emergencia', 'emergência', 'طوارئ', 'emergency'])) { this.triggerSOS(); return; }
+                    this.executeAudioTask(I18n.current === 'pt' ? "Para quem deseja ligar? Diga o nome do contato ou diga voltar." : "¿A quién deseas llamar? Di el nombre del contacto o di volver.", true); UI.navigateTo('menu-llamar'); return;
+                }
+
+                if (contains(['explorar', 'mirar', 'qué hay', 'olhar', 'o que tem', 'explore', 'look', 'what is here', 'استكشاف', 'ماذا يوجد'])) this.executeAction('explorar'); 
+                else if (contains(['dinero', 'billetes', 'billete', 'plata', 'dinheiro', 'notas', 'nota', 'money', 'cash', 'bills', 'نقود', 'مال', 'عملة'])) this.executeAction('dinero'); 
+                else if (contains(['leer', 'texto', 'ler', 'read', 'text', 'قراءة', 'نص'])) this.executeAction('leer'); 
+                else if (contains(['ocio', 'juegos', 'lazer', 'jogos', 'leisure', 'games', 'ترفيه', 'ألعاب'])) UI.navigateTo('menu-ocio'); 
+                else if (contains(['configuración', 'ajustes', 'configuração', 'settings', 'configuration', 'إعدادات', 'ضبط'])) UI.navigateTo('menu-config'); 
+                else if (contains(['cambiar voz', 'mudar voz', 'trocar voz', 'change voice', 'تغيير الصوت'])) this.toggleVoice(); 
+                else if (contains(['memoria', 'juego de memoria', 'memória', 'jogo de memória', 'memory', 'memory game', 'ذاكرة', 'لعبة الذاكرة'])) this.executeAction('chat_memory'); 
+                else if (contains(['idiomas', 'aprender idioma', 'clase', 'aula', 'languages', 'learn language', 'class', 'لغات', 'تعلم لغة'])) this.executeAction('chat_language'); 
+                else if (contains(['biblia', 'versículo', 'corán', 'coran', 'quran', 'aleya', 'sura', 'alcorão', 'bible', 'verse', 'قرآن', 'آية', 'سورة', 'إنجيل'])) this.executeAction('chat_religion');
+                else if (contains(['cuento', 'historia', 'relato', 'história', 'story', 'tale', 'قصة', 'حكاية'])) this.executeAction('chat_quick', 'p_story');
+                else if (contains(['chiste', 'broma', 'reír', 'piada', 'brincadeira', 'rir', 'joke', 'laugh', 'نكتة', 'مزحة'])) this.executeAction('chat_quick', 'p_joke');
+                else if (contains(['trivia', 'dato curioso', 'sabías que', 'curiosidade', 'fato curioso', 'você sabia', 'fun fact', 'did you know', 'معلومة', 'هل تعلم'])) this.executeAction('chat_quick', 'p_trivia');
+                else if (contains(['resumen de noticias', 'leer noticias', 'noticias del día', 'resumo de notícias', 'news summary', 'read news', 'ملخص الأخبار'])) this.executeAction('chat_quick', 'p_news');
+                else if (contains(['noticias', 'información', 'notícia', 'notícias', 'news', 'information', 'أخبار', 'معلومات']) && isOcioActive) this.executeAction('chat_quick', 'p_news');
+                else { 
+                    if (ChatManager.activeMode) {
+                        this.executeAction('chat_general', cmd); 
+                    }
+                    else if (contains(['visiora', 'oye', 'asistente', 'hola', 'dime', 'ei', 'olá', 'diga', 'hey', 'assistant', 'hello', 'tell me', 'فيزيورا', 'مساعد', 'مرحبا', 'أخبرني'])) {
+                        this.executeAction('chat_general', cmd); 
+                    }
+                }
+            },
+            
+            callSpecificContact(numero, nombre) { this.forceStopAll(); this.executeAudioTask((I18n.current === 'pt' ? "Ligando para " : I18n.get("spk_call_dial")) + nombre); setTimeout(() => window.location.href = `tel:${numero}`, 2500); },
+            async triggerSOS() { 
+                this.forceStopAll(); 
+                document.body.classList.add('sos-active'); 
+                const emContacto = StorageManager.contacts.emergencia; 
+                console.log("ALERTA DE EMERGENCIA: " + DateTimeUtils.getLiveStamp());
+                await this.executeAudioTask("Llamando a " + (emContacto.nombre || "Emergencia"), true); 
+                setTimeout(() => { document.body.classList.remove('sos-active'); window.location.href = `tel:${emContacto.tel || '112'}`; }, 3000); 
+            }
+        };
+
+        window.Core = { init: () => AppController.init(), executeCommand: (t, e) => AppController.executeAction(t, e), triggerSOS: () => AppController.triggerSOS() };
+        window.UI = UI; window.AudioEngine = AudioEngine; window.SpeechEngine = { startListening: (k = true) => { SpeechEngine.startListening(k); } }; window.LocationEngine = LocationEngine; window.RadioEngine = RadioEngine; window.PowerManager = PowerManager; window.LiveAssistEngine = LiveAssistEngine;
+        
+        window.ChatEngine = { 
+            triggerTask: (k) => AppController.executeAction('chat_quick', 'p_' + k), 
+            startMemoryGame: () => AppController.executeAction('chat_memory'), 
+            startLanguageGame: () => AppController.executeAction('chat_language'), 
+            startReligionMode: () => AppController.executeAction('chat_religion'), 
+            startConversation: () => AppController.executeAction('chat_free'), 
+            sendTextMsg: () => { const t = UI.getChatInputValue(); if(t) { UI.clearChatInput(); AppController.executeAction('chat_general', t); } } 
+        };
+        
+        window.StorageManager = StorageManager; window.SettingsUI = SettingsUI;
+
+    </script>
+
+    <!-- MÓDULO DE BACKEND: VERIFICACIÓN DE PAGOS -->
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+        import { getAuth, onAuthStateChanged, signInAnonymously, signInWithCustomToken } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+        import { getFirestore, doc, setDoc, getDoc } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+
+        const SIMULAR_PAGO_VENCIDO = false; 
+        
+        const firebaseConfigStr = typeof __firebase_config !== 'undefined' ? __firebase_config : '{}';
+        const firebaseConfig = JSON.parse(firebaseConfigStr);
+        const appId = typeof __app_id !== 'undefined' ? __app_id : 'visiora-wearable';
+
+        let app, auth, db;
+        if(Object.keys(firebaseConfig).length > 0) {
+            app = initializeApp(firebaseConfig);
+            auth = getAuth(app);
+            db = getFirestore(app);
+        }
+
+        const BackendLayer = {
+            userId: null,
+            
+            async init() {
+                if(!app) { this.finishSetup(); return; }
+
+                const logUI = document.getElementById('backend-status-log');
+                
+                try {
+                    logUI.innerText = "Autenticando usuario...";
+                    if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
+                        await signInWithCustomToken(auth, __initial_auth_token);
+                    } else {
+                        await signInAnonymously(auth);
+                    }
+
+                    onAuthStateChanged(auth, async (user) => {
+                        if (user) {
+                            this.userId = user.uid;
+                            const isPaymentValid = await this.verifyPaymentStatus(this.userId, logUI);
+                            
+                            if (!isPaymentValid) {
+                                this.handleExpiredSubscription(logUI);
+                                return;
+                            }
+
+                            logUI.innerText = "Sincronizando datos...";
+                            await this.injectCloudSync();
+                            setTimeout(() => this.finishSetup(), 500);
+                            
+                        } else {
+                            logUI.innerText = "Fallo de conexión. Modo local.";
+                            setTimeout(() => this.finishSetup(), 1000);
+                        }
+                    });
+
+                } catch(e) {
+                    logUI.innerText = "Error en la nube. Iniciando...";
+                    console.error("Backend Error:", e);
+                    setTimeout(() => this.finishSetup(), 1000);
+                }
+            },
+
+            async verifyPaymentStatus(uid, logUI) {
+                logUI.innerText = "Verificando suscripción...";
+                return new Promise((resolve) => {
+                    setTimeout(async () => {
+                        try {
+                            if (SIMULAR_PAGO_VENCIDO) resolve(false); 
+                            else resolve(true);  
+                        } catch (error) {
+                            console.error("Error al contactar con servidor de pagos", error);
+                            resolve(true); 
+                        }
+                    }, 1500);
+                });
+            },
+
+            handleExpiredSubscription(logUI) {
+                const spinner = document.getElementById('loading-spinner');
+                spinner.style.animation = 'none';
+                spinner.classList.add('error-pulse');
+                
+                logUI.classList.add('log-error');
+                logUI.innerHTML = "Suscripción inactiva.<br>Redirigiendo al portal de pagos...";
+                
+                try {
+                    const mensaje = window.I18n.current === 'es' 
+                        ? "Atención. Su suscripción ha expirado. Redirigiendo al portal de pagos web." 
+                        : "Subscription expired. Redirecting to payment portal.";
+                    window.AudioEngine.speak(mensaje);
+                } catch(e) {}
+                
+                setTimeout(() => {
+                    window.location.href = "https://www.visiora-ai.com/pagos";
+                }, 3500);
+            },
+
+            async injectCloudSync() {
+                if (!window.StorageManager || typeof window.StorageManager.load !== 'function') return;
+                
+                const originalLoad = window.StorageManager.load.bind(window.StorageManager);
+
+                window.StorageManager.load = async () => {
+                    try {
+                        const docRef = doc(db, 'artifacts', appId, 'users', this.userId, 'settings');
+                        const docSnap = await getDoc(docRef);
+                        
+                        const localDataRaw = localStorage.getItem('visiora_wearable_v8_0');
+                        const localData = localDataRaw ? JSON.parse(localDataRaw) : null;
+
+                        if (docSnap.exists()) {
+                            const cloudData = docSnap.data();
+                            const cloudTs = cloudData.ts || 0;
+                            const localTs = localData ? (localData.ts || 0) : 0;
+                            
+                            if (cloudTs >= localTs) {
+                                localStorage.setItem('visiora_wearable_v8_0', JSON.stringify({
+                                    lang: cloudData.lang || 'es',
+                                    contacts: cloudData.contacts || window.StorageManager.contacts,
+                                    glasses: cloudData.glasses || window.StorageManager.glasses,
+                                    ts: cloudTs
+                                }));
+                            } else if (localData && window.CloudSyncHook) {
+                                window.CloudSyncHook();
+                            }
+                        } else if (localData && window.CloudSyncHook) {
+                            window.CloudSyncHook();
+                        }
+                    } catch(e) {}
+                    originalLoad(); 
+                };
+
+                window.CloudSyncHook = async () => {
+                    try {
+                        const docRef = doc(db, 'artifacts', appId, 'users', this.userId, 'settings');
+                        await setDoc(docRef, {
+                            lang: window.I18n.current,
+                            contacts: window.StorageManager.contacts,
+                            glasses: window.StorageManager.glasses,
+                            ts: Date.now(),
+                            updatedAt: new Date().toISOString()
+                        });
+                    } catch(e) {}
+                };
+
+                await window.StorageManager.load();
+            },
+
+            finishSetup() {
+                const layer = document.getElementById('backend-layer');
+                layer.style.opacity = '0';
+                setTimeout(() => { layer.style.display = 'none'; }, 500);
+            }
+        };
+
+        BackendLayer.init();
+
+    </script>
+</body>
+</html>
